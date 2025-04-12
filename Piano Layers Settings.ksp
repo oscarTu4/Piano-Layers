@@ -1,0 +1,1085 @@
+on init
+	make_perfview
+	message("")
+	set_ui_height_px(425)
+	set_ui_color(6bb5c7h)
+
+	declare $count
+	declare $count2
+	declare $valueHolder1
+	declare $valueHolder2
+	declare const $unitLimit:=6
+
+	declare !soundNames[24]
+	!soundNames[0]:="Gentle Wood"
+	!soundNames[1]:="Typewriter"
+	!soundNames[2]:="Piano Mutes"
+	!soundNames[3]:="1st Harmonic"
+	!soundNames[4]:="2nd Harmonic"
+	!soundNames[5]:="Felt Guitar"
+	!soundNames[6]:="Felt Woodchips"
+	!soundNames[7]:="Felt Book"
+	!soundNames[8]:="Metal Klatter"
+	!soundNames[9]:="Synth Trickle"
+	!soundNames[10]:="Arctic Wave"
+	!soundNames[11]:="Arctic Wind"
+	!soundNames[12]:="Crumbly Machine"
+	!soundNames[13]:="Dystopian Cog"
+	!soundNames[14]:="Dystopian Cog 2"
+	!soundNames[15]:="Storm Brewing"
+	!soundNames[16]:="Stretched Piano"
+	!soundNames[17]:="Subtle Burn"
+	!soundNames[18]:="On Acid"
+	!soundNames[19]:="Typewriter Pad"
+	!soundNames[20]:="Gentle Wind"
+	!soundNames[21]:="Gnarly Synth"
+	!soundNames[22]:="Pearly Sine"
+	!soundNames[23]:="Sparkly Synth"
+
+	declare !resoNames[11]
+	!resoNames[0]:="Clean Room"
+	!resoNames[1]:="Bright Room"
+	!resoNames[2]:="Bedroom"
+	!resoNames[3]:="Medium Hall"
+	!resoNames[4]:="Large Hall"
+	!resoNames[5]:="Long Tail"
+	!resoNames[6]:="Tape Gone Wrong"
+	!resoNames[7]:="Slow Dly"
+	!resoNames[8]:="Fast Dly"
+	!resoNames[9]:="Slow Dly Roomy"
+	!resoNames[10]:="Fast Dly Roomy"
+
+	declare const $dlyBorder:=7
+
+	declare !compNames[6]
+	!compNames[0]:="Slow"
+	!compNames[1]:="Medium"
+	!compNames[2]:="Fast"
+	!compNames[3]:="Transparent"
+	!compNames[4]:="Hard"
+	!compNames[5]:="Punchy"
+
+	declare ui_button $fxUnit0
+	$fxUnit0:=1
+	set_text($fxUnit0, "Piano")
+	declare ui_button $fxUnit1
+	declare ui_button $fxUnit2
+	declare ui_button $fxUnit3
+	declare ui_button $fxUnit4
+	declare ui_button $fxUnit5
+
+	make_persistent($fxUnit0)
+	make_persistent($fxUnit1)
+	make_persistent($fxUnit2)
+	make_persistent($fxUnit3)
+	make_persistent($fxUnit4)
+	make_persistent($fxUnit5)
+
+	move_control_px($fxUnit0, 10, 75)
+	move_control_px($fxUnit1, 10, 100)
+	move_control_px($fxUnit2, 10, 125)
+	move_control_px($fxUnit3, 10, 150)
+	move_control_px($fxUnit4, 10, 175)
+	move_control_px($fxUnit5, 10, 200)
+
+	declare %fxUnits[$unitLimit]
+	%fxUnits[0]:=get_ui_id($fxUnit0)
+	%fxUnits[1]:=get_ui_id($fxUnit1)
+	%fxUnits[2]:=get_ui_id($fxUnit2)
+	%fxUnits[3]:=get_ui_id($fxUnit3)
+	%fxUnits[4]:=get_ui_id($fxUnit4)
+	%fxUnits[5]:=get_ui_id($fxUnit5)
+
+	$count:=0
+	while($count < $unitLimit)
+		set_control_par_str(%fxUnits[$count], $CONTROL_PAR_PICTURE, "fxUnit_button")
+		set_control_par(%fxUnits[$count], $CONTROL_PAR_FONT_TYPE, 1)
+		set_control_par(%fxUnits[$count], $CONTROL_PAR_TEXT_ALIGNMENT, 1)
+		set_control_par(%fxUnits[$count], $CONTROL_PAR_TEXTPOS_Y, 3)
+		set_control_par(%fxUnits[$count], $CONTROL_PAR_DISABLE_TEXT_SHIFTING, 1)
+		inc($count)
+	end while
+	$count:=0
+
+	declare ui_label $fxBackgroundLabel(1, 1)
+	move_control_px($fxBackgroundLabel, 160, 20)
+	set_text($fxBackgroundLabel, "")
+	set_control_par_str(get_ui_id($fxBackgroundLabel), $CONTROL_PAR_PICTURE, "fx_background")
+
+	declare ui_label $fxBackgroundLeftLabel(1, 1)
+	move_control_px($fxBackgroundLeftLabel, 5, 20)
+	set_text($fxBackgroundLeftLabel, "")
+	set_control_par_str(get_ui_id($fxBackgroundLeftLabel), $CONTROL_PAR_PICTURE, "fx_background_left")
+	
+	declare ui_label $fxBackgroundBottomLabel(1, 1)
+	move_control_px($fxBackgroundBottomLabel, 160, 275)
+	set_text($fxBackgroundBottomLabel, "")
+	set_control_par_str(get_ui_id($fxBackgroundBottomLabel), $CONTROL_PAR_PICTURE, "fx_background_bottom")
+
+	declare ui_button $linkButton1
+	declare ui_button $linkButton2
+	declare ui_button $linkButton3
+	declare ui_button $linkButton4
+	declare ui_button $linkButton5
+
+	make_persistent($linkButton1)
+	make_persistent($linkButton2)
+	make_persistent($linkButton3)
+	make_persistent($linkButton4)
+	make_persistent($linkButton5)
+
+	set_text($linkButton1, "L")
+	set_text($linkButton2, "L")
+	set_text($linkButton3, "L")
+	set_text($linkButton4, "L")
+	set_text($linkButton5, "L")
+	move_control_px($linkButton1, 120, 100)
+	move_control_px($linkButton2, 120, 125)
+	move_control_px($linkButton3, 120, 150)
+	move_control_px($linkButton4, 120, 175)
+	move_control_px($linkButton5, 120, 200)
+
+	declare %linkButtons[$unitLimit]
+	{0 not needed, just formality}
+	%linkButtons[1]:=get_ui_id($linkButton1)
+	%linkButtons[2]:=get_ui_id($linkButton2)
+	%linkButtons[3]:=get_ui_id($linkButton3)
+	%linkButtons[4]:=get_ui_id($linkButton4)
+	%linkButtons[5]:=get_ui_id($linkButton5)
+	set_control_par_str(%linkButtons[1], $CONTROL_PAR_PICTURE, "settings_linkButton")
+	set_control_par_str(%linkButtons[2], $CONTROL_PAR_PICTURE, "settings_linkButton")
+	set_control_par_str(%linkButtons[3], $CONTROL_PAR_PICTURE, "settings_linkButton")
+	set_control_par_str(%linkButtons[4], $CONTROL_PAR_PICTURE, "settings_linkButton")
+	set_control_par_str(%linkButtons[5], $CONTROL_PAR_PICTURE, "settings_linkButton")
+	set_control_par(%linkButtons[1], $CONTROL_PAR_FONT_TYPE, 10)
+	set_control_par(%linkButtons[2], $CONTROL_PAR_FONT_TYPE, 10)
+	set_control_par(%linkButtons[3], $CONTROL_PAR_FONT_TYPE, 10)
+	set_control_par(%linkButtons[4], $CONTROL_PAR_FONT_TYPE, 10)
+	set_control_par(%linkButtons[5], $CONTROL_PAR_FONT_TYPE, 10)
+	set_control_par(%linkButtons[1], $CONTROL_PAR_DISABLE_TEXT_SHIFTING, 1)
+	set_control_par(%linkButtons[2], $CONTROL_PAR_DISABLE_TEXT_SHIFTING, 1)
+	set_control_par(%linkButtons[3], $CONTROL_PAR_DISABLE_TEXT_SHIFTING, 1)
+	set_control_par(%linkButtons[4], $CONTROL_PAR_DISABLE_TEXT_SHIFTING, 1)
+	set_control_par(%linkButtons[5], $CONTROL_PAR_DISABLE_TEXT_SHIFTING, 1)
+	
+	{volume array not needed, initialized in main script}
+	declare %toneAmount[$unitLimit]
+	declare %widthAmount[$unitLimit]
+	declare %panAmount[$unitLimit]
+	declare %lowEqAmount[$unitLimit]
+	declare %midEqAmount[$unitLimit]
+	declare %midEqType[$unitLimit]
+	declare %hiEqAmount[$unitLimit]
+	declare %compAmount[$unitLimit]
+	declare %compType[$unitLimit]
+	declare %spaceAmount[$unitLimit]
+	declare %spaceType[$unitLimit]
+
+	make_persistent(%toneAmount)
+	make_persistent(%widthAmount)
+	make_persistent(%panAmount)
+	make_persistent(%lowEqAmount)
+	make_persistent(%midEqAmount)
+	make_persistent(%midEqType)
+	make_persistent(%hiEqAmount)
+	make_persistent(%compAmount)
+	make_persistent(%compType)
+	make_persistent(%spaceAmount)
+	make_persistent(%spaceType)
+
+	read_persistent_var(%toneAmount)
+	read_persistent_var(%widthAmount)
+	read_persistent_var(%panAmount)
+	read_persistent_var(%lowEqAmount)
+	read_persistent_var(%midEqAmount)
+	read_persistent_var(%midEqType)
+	read_persistent_var(%hiEqAmount)
+	read_persistent_var(%compAmount)
+	read_persistent_var(%compType)
+	read_persistent_var(%spaceAmount)
+	read_persistent_var(%spaceType)
+	
+	declare ui_slider $volumeKnob(0, 1000000)
+	set_knob_defval($volumeKnob, 630000)
+	move_control_px($volumeKnob, 200, 50)
+
+	declare ui_label $volumeLabel(1, 1)
+	set_text($volumeLabel, "Volume")
+	move_control_px($volumeLabel, 194, 95)
+	hide_part($volumeLabel, $HIDE_PART_BG)
+	set_control_par(get_ui_id($volumeLabel), $CONTROL_PAR_FONT_TYPE, 1)
+
+	declare ui_slider $toneKnob(0, 1000000)
+	set_knob_defval($toneKnob, 500000)
+	move_control_px($toneKnob, 280, 50)
+
+	declare ui_label $toneLabel(1, 1)
+	set_text($toneLabel, "Tone")
+	move_control_px($toneLabel, 280, 95)
+	hide_part($toneLabel, $HIDE_PART_BG)
+	set_control_par(get_ui_id($toneLabel), $CONTROL_PAR_FONT_TYPE, 1)
+
+	declare ui_slider $widthKnob(0, 1000000)
+	set_knob_defval($widthKnob, 500000)
+	move_control_px($widthKnob, 200, 125)
+
+	declare ui_label $widthLabel(1, 1)
+	set_text($widthLabel, "Width")
+	move_control_px($widthLabel, 198, 170)
+	hide_part($widthLabel, $HIDE_PART_BG)
+	set_control_par(get_ui_id($widthLabel), $CONTROL_PAR_FONT_TYPE, 1)
+
+	declare ui_slider $panKnob(0, 1000000)
+	set_knob_defval($panKnob, 500000)
+	move_control_px($panKnob, 200, 200)
+	
+	declare ui_label $panLabel(1, 1)
+	set_text($panLabel, "Pan")
+	move_control_px($panLabel, 203, 245)
+	hide_part($panLabel, $HIDE_PART_BG)
+	set_control_par(get_ui_id($panLabel), $CONTROL_PAR_FONT_TYPE, 1)
+
+	declare ui_slider $lowEqKnob(300000, 700000)
+	set_knob_defval($lowEqKnob, 500000)
+	move_control_px($lowEqKnob, 375, 80)
+
+	declare ui_label $lowEqLabel(1, 1)
+	set_text($lowEqLabel, "Bass")
+	move_control_px($lowEqLabel, 375, 130)
+	hide_part($lowEqLabel, $HIDE_PART_BG)
+	set_control_par(get_ui_id($lowEqLabel), $CONTROL_PAR_FONT_TYPE, 1)
+
+	declare ui_slider $midEqKnob(300000, 700000)
+	set_knob_defval($midEqKnob, 500000)
+	move_control_px($midEqKnob, 450, 80)
+
+	declare ui_menu $midEqMenu
+	add_menu_item($midEqMenu, "Mud", 0)
+	add_menu_item($midEqMenu, "Mid", 1)
+	add_menu_item($midEqMenu, "Nose", 2)
+
+	move_control_px($midEqMenu, 452, 130)
+	set_control_par(get_ui_id($midEqMenu), $CONTROL_PAR_FONT_TYPE, 1)
+	set_control_par(get_ui_id($midEqMenu), $CONTROL_PAR_TEXT_ALIGNMENT, 0)
+	set_control_par_str(get_ui_id($midEqMenu), $CONTROL_PAR_PICTURE, "settings_label")
+	
+	declare ui_slider $hiEqKnob(300000, 700000)
+	set_knob_defval($hiEqKnob, 500000)
+	move_control_px($hiEqKnob, 525, 80)
+
+	declare ui_label $hiEqLabel(1, 1)
+	set_text($hiEqLabel, "Hi")
+	move_control_px($hiEqLabel, 534, 130)
+	hide_part($hiEqLabel, $HIDE_PART_BG)
+	set_control_par(get_ui_id($hiEqLabel), $CONTROL_PAR_FONT_TYPE, 1)
+
+	declare ui_slider $compAmountKnob(130000, 1000000)
+	set_knob_defval($compAmountKnob, 130000)
+	move_control_px($compAmountKnob, 400, 160)
+
+	declare ui_label $compAmountLabel(1, 1)
+	set_text($compAmountLabel, "Compress")
+	move_control_px($compAmountLabel, 387, 210)
+	hide_part($compAmountLabel, $HIDE_PART_BG)
+	set_control_par(get_ui_id($compAmountLabel), $CONTROL_PAR_FONT_TYPE, 1)
+
+	declare ui_menu $compTypeMenu
+	move_control_px($compTypeMenu, 357, 230)
+	declare $compTypeMenuId:=get_ui_id($compTypeMenu)
+	set_control_par($compTypeMenuId, $CONTROL_PAR_FONT_TYPE, 1)
+	set_control_par($compTypeMenuId, $CONTROL_PAR_TEXT_ALIGNMENT, 1)
+	set_control_par_str($compTypeMenuId, $CONTROL_PAR_PICTURE, "settings_label")
+
+	$count:=0
+	while($count < num_elements(!compNames))
+		add_menu_item($compTypeMenu, !compNames[$count], $count)
+		inc($count)
+	end while
+	$count:=0
+
+	declare ui_slider $spaceAmountKnob(0, 400000)
+	move_control_px($spaceAmountKnob, 495, 160)
+
+	declare ui_label $spaceLabel(1, 1)
+	set_text($spaceLabel, "Space")
+	move_control_px($spaceLabel, 492, 210)
+	hide_part($spaceLabel, $HIDE_PART_BG)
+	set_control_par(get_ui_id($spaceLabel), $CONTROL_PAR_FONT_TYPE, 1)
+
+	declare ui_menu $spaceTypeMenu
+	move_control_px($spaceTypeMenu, 455, 230)
+	declare $spaceMenuId:=get_ui_id($spaceTypeMenu)
+	set_control_par($spaceMenuId, $CONTROL_PAR_FONT_TYPE, 1)
+	set_control_par($spaceMenuId, $CONTROL_PAR_TEXT_ALIGNMENT, 1)
+	set_control_par_str($spaceMenuId, $CONTROL_PAR_PICTURE, "settings_label")
+
+	$count:=0
+	while($count < num_elements(!resoNames))
+		add_menu_item($spaceTypeMenu, !resoNames[$count], $count)
+		inc($count)
+	end while
+	$count:=0
+
+	set_control_par_str(get_ui_id($volumeKnob), $CONTROL_PAR_PICTURE, "settings_slider")
+	set_control_par_str(get_ui_id($toneKnob), $CONTROL_PAR_PICTURE, "settings_slider")
+	set_control_par_str(get_ui_id($widthKnob), $CONTROL_PAR_PICTURE, "settings_slider")
+	set_control_par_str(get_ui_id($panKnob), $CONTROL_PAR_PICTURE, "settings_slider")
+	set_control_par_str(get_ui_id($lowEqKnob), $CONTROL_PAR_PICTURE, "settings_slider")
+	set_control_par_str(get_ui_id($midEqKnob), $CONTROL_PAR_PICTURE, "settings_slider")
+	set_control_par_str(get_ui_id($hiEqKnob), $CONTROL_PAR_PICTURE, "settings_slider")
+	set_control_par_str(get_ui_id($compAmountKnob), $CONTROL_PAR_PICTURE, "settings_slider")
+	set_control_par_str(get_ui_id($spaceAmountKnob), $CONTROL_PAR_PICTURE, "settings_slider")
+
+	set_control_par(get_ui_id($volumeKnob), $CONTROL_PAR_MOUSE_BEHAVIOUR, -300)
+	set_control_par(get_ui_id($toneKnob), $CONTROL_PAR_MOUSE_BEHAVIOUR, -300)
+	set_control_par(get_ui_id($widthKnob), $CONTROL_PAR_MOUSE_BEHAVIOUR, -300)
+	set_control_par(get_ui_id($panKnob), $CONTROL_PAR_MOUSE_BEHAVIOUR, -300)
+	set_control_par(get_ui_id($lowEqKnob), $CONTROL_PAR_MOUSE_BEHAVIOUR, -300)
+	set_control_par(get_ui_id($midEqKnob), $CONTROL_PAR_MOUSE_BEHAVIOUR, -300)
+	set_control_par(get_ui_id($hiEqKnob), $CONTROL_PAR_MOUSE_BEHAVIOUR, -300)
+	set_control_par(get_ui_id($compAmountKnob), $CONTROL_PAR_MOUSE_BEHAVIOUR, -300)
+	set_control_par(get_ui_id($spaceAmountKnob), $CONTROL_PAR_MOUSE_BEHAVIOUR, -300)
+
+	set_control_par(get_ui_id($volumeKnob), $CONTROL_PAR_ALLOW_AUTOMATION, 0)
+	set_control_par(get_ui_id($toneKnob), $CONTROL_PAR_ALLOW_AUTOMATION, 0)
+	set_control_par(get_ui_id($widthKnob), $CONTROL_PAR_ALLOW_AUTOMATION, 0)
+	set_control_par(get_ui_id($panKnob), $CONTROL_PAR_ALLOW_AUTOMATION, 0)
+	set_control_par(get_ui_id($lowEqKnob), $CONTROL_PAR_ALLOW_AUTOMATION, 0)
+	set_control_par(get_ui_id($midEqKnob), $CONTROL_PAR_ALLOW_AUTOMATION, 0)
+	set_control_par(get_ui_id($hiEqKnob), $CONTROL_PAR_ALLOW_AUTOMATION, 0)
+	set_control_par(get_ui_id($compAmountKnob), $CONTROL_PAR_ALLOW_AUTOMATION, 0)
+	set_control_par(get_ui_id($spaceAmountKnob), $CONTROL_PAR_ALLOW_AUTOMATION, 0)
+
+	declare ui_slider $compGlue(130000, 1000000)
+	move_control_px($compGlue, 250, 290)
+	make_persistent($compGlue)
+
+	declare ui_label $compGlueLabel(1, 1)
+	set_text($compGlueLabel, "Glue Compress")
+	move_control_px($compGlueLabel, 235, 360)
+	hide_part($compGlueLabel, $HIDE_PART_BG)
+	set_control_par(get_ui_id($compGlueLabel), $CONTROL_PAR_FONT_TYPE, 1)
+
+	declare ui_slider $tapeGlue (0, 1000000)
+	move_control_px($tapeGlue, 400, 290)
+	make_persistent($tapeGlue)
+
+	declare ui_label $tapeGlueLabel(1, 1)
+	set_text($tapeGlueLabel, "Glue Tape")
+	move_control_px($tapeGlueLabel, 395, 360)
+	hide_part($tapeGlueLabel, $HIDE_PART_BG)
+	set_control_par(get_ui_id($tapeGlueLabel), $CONTROL_PAR_FONT_TYPE, 1)
+
+
+	declare $compGlueId:=get_ui_id($compGlue)
+	declare $tapeGlueId:=get_ui_id($tapeGlue)
+	set_control_par_str($compGlueId, $CONTROL_PAR_PICTURE, "settings_slider_large")
+	set_control_par_str($tapeGlueId, $CONTROL_PAR_PICTURE, "settings_slider_large")
+	set_control_par($compGlueId, $CONTROL_PAR_MOUSE_BEHAVIOUR, -500)
+	set_control_par($tapeGlueId, $CONTROL_PAR_MOUSE_BEHAVIOUR, -500)
+	
+	declare $unitClicked
+	$unitClicked:=0
+	make_persistent($unitClicked)
+	declare $bussSelection
+
+	declare @output
+
+	pgs_create_key(VOLUME_CHANGE_FX, 1)
+	declare $volChangeKeyValue
+end on
+
+function func_setUnitButtonsState
+	$count:=0
+	while($count < num_elements(%fxUnits))
+		if($unitClicked # $count)
+			set_control_par(%fxUnits[$count], $CONTROL_PAR_VALUE, 0)
+		else
+			set_control_par(%fxUnits[$count], $CONTROL_PAR_VALUE, 1)
+		end if
+		inc($count)
+	end while
+	$count:=0
+end function
+
+{function calculates and sets engine parameters of tone}
+function func_setTone
+	if(%toneAmount[$bussSelection] < 500000)
+		set_engine_par($ENGINE_PAR_EFFECT_BYPASS, 1, -1, 3, $NI_BUS_OFFSET+$bussSelection)
+		set_engine_par($ENGINE_PAR_EFFECT_BYPASS, 1, -1, 4, $NI_BUS_OFFSET+$bussSelection)
+		set_engine_par($ENGINE_PAR_EFFECT_BYPASS, 0, -1, 2, $NI_BUS_OFFSET+$bussSelection)
+		set_engine_par($ENGINE_PAR_CUTOFF, %toneAmount[$bussSelection]+500000, -1, 2, $NI_BUS_OFFSET + $bussSelection)
+		set_engine_par($ENGINE_PAR_SHAPE, 500000, -1, 4, $NI_BUS_OFFSET+$bussSelection)
+	end if
+	if($toneKnob >= 500000)
+		set_engine_par($ENGINE_PAR_EFFECT_BYPASS, 1, -1, 2, $NI_BUS_OFFSET+$bussSelection)
+		set_engine_par($ENGINE_PAR_EFFECT_BYPASS, 0, -1, 3, $NI_BUS_OFFSET+$bussSelection)
+		set_engine_par($ENGINE_PAR_EFFECT_BYPASS, 0, -1, 4, $NI_BUS_OFFSET+$bussSelection)
+		set_engine_par($ENGINE_PAR_CUTOFF, %toneAmount[$bussSelection]-400000, -1, 3, $NI_BUS_OFFSET + $bussSelection)
+		set_engine_par($ENGINE_PAR_SHAPE, 250000+(%toneAmount[$bussSelection]/2), -1, 4, $NI_BUS_OFFSET + $bussSelection)
+	end if
+end function
+
+function func_setMidEqType
+	select($midEqMenu)
+		case 0
+			 set_engine_par($ENGINE_PAR_FREQ2, 350000, -1, 1, $NI_BUS_OFFSET+$bussSelection)
+		case 1 
+			 set_engine_par($ENGINE_PAR_FREQ2, 550000, -1, 1, $NI_BUS_OFFSET+$bussSelection)
+		case 2 
+			 set_engine_par($ENGINE_PAR_FREQ2, 700000, -1, 1, $NI_BUS_OFFSET+$bussSelection)
+	end select
+end function
+
+function func_setCompType
+	if(%compAmount[$bussSelection] > 0)
+		if(%compType[$bussSelection] # 3)
+			set_engine_par($ENGINE_PAR_SCOMP_MIX, 1000000, -1, 5, $NI_BUS_OFFSET+$bussSelection)
+		end if
+		if(%compType[$bussSelection] < 4)
+			set_engine_par($ENGINE_PAR_SCOMP_RATIO, 200000, -1, 5, $NI_BUS_OFFSET+$bussSelection)
+		end if
+		select(%compType[$bussSelection])
+			case 0
+				set_engine_par($ENGINE_PAR_SCOMP_ATTACK, 1000000, -1, 5, $NI_BUS_OFFSET+$bussSelection)
+				set_engine_par($ENGINE_PAR_SCOMP_RELEASE, 1000000, -1, 5, $NI_BUS_OFFSET+$bussSelection)
+			case 1
+				set_engine_par($ENGINE_PAR_SCOMP_ATTACK, 800000, -1, 5, $NI_BUS_OFFSET+$bussSelection)
+				set_engine_par($ENGINE_PAR_SCOMP_RELEASE, 1000000, -1, 5, $NI_BUS_OFFSET+$bussSelection)
+			case 2
+				set_engine_par($ENGINE_PAR_SCOMP_ATTACK, 200000, -1, 5, $NI_BUS_OFFSET+$bussSelection)
+				set_engine_par($ENGINE_PAR_SCOMP_RELEASE, 1000000, -1, 5, $NI_BUS_OFFSET+$bussSelection)
+			case 3
+				set_engine_par($ENGINE_PAR_SCOMP_ATTACK, 800000, -1, 5, $NI_BUS_OFFSET+$bussSelection)
+				set_engine_par($ENGINE_PAR_SCOMP_RELEASE, 600000, -1, 5, $NI_BUS_OFFSET+$bussSelection)
+			case 4
+				set_engine_par($ENGINE_PAR_SCOMP_ATTACK, 700000, -1, 5, $NI_BUS_OFFSET+$bussSelection)
+				set_engine_par($ENGINE_PAR_SCOMP_RELEASE, 400000, -1, 5, $NI_BUS_OFFSET+$bussSelection)
+				set_engine_par($ENGINE_PAR_SCOMP_RATIO, 500000, -1, 5, $NI_BUS_OFFSET+$bussSelection)
+			case 5
+				set_engine_par($ENGINE_PAR_SCOMP_ATTACK, 1000000, -1, 5, $NI_BUS_OFFSET+$bussSelection)
+				set_engine_par($ENGINE_PAR_SCOMP_RELEASE, 400000, -1, 5, $NI_BUS_OFFSET+$bussSelection)
+				set_engine_par($ENGINE_PAR_SCOMP_RATIO, 1000000, -1, 5, $NI_BUS_OFFSET+$bussSelection)
+		end select
+	end if
+	
+end function
+
+function func_setCompAmount
+	if(%compAmount[$bussSelection] > 0)
+		set_engine_par($ENGINE_PAR_SCOMP_THRESHOLD, abs(%compAmount[$bussSelection]-1000000), -1, 5, $NI_BUS_OFFSET+$bussSelection)
+	end if
+	if(%compType[$bussSelection] = 3)
+		set_engine_par($ENGINE_PAR_SCOMP_MIX, %compAmount[$bussSelection], -1, 5, $NI_BUS_OFFSET+$bussSelection)
+	end if
+	set_engine_par($ENGINE_PAR_SCOMP_MAKEUP, 200000+real_to_int(0.2 * int_to_real((%compAmount[$bussSelection]-130000))), -1, 5, $NI_BUS_OFFSET+$bussSelection)
+end function
+
+function func_setSpace
+	if(%spaceType[$bussSelection] < $dlyBorder)
+		load_ir_sample(!resoNames[%spaceType[$bussSelection]], 7, $NI_BUS_OFFSET+$bussSelection)
+	
+		set_engine_par($ENGINE_PAR_EFFECT_BYPASS, 0, -1, 7, $NI_BUS_OFFSET+$bussSelection)
+		set_engine_par($ENGINE_PAR_EFFECT_BYPASS, 1, -1, 6, $NI_BUS_OFFSET+$bussSelection)
+		
+		if(%spaceAmount[$bussSelection] > 200000)
+			set_engine_par($ENGINE_PAR_SEND_EFFECT_DRY_LEVEL, 2*(400000 - %spaceAmount[$bussSelection]), -1, 7, $NI_BUS_OFFSET+$bussSelection)
+		else
+			set_engine_par($ENGINE_PAR_SEND_EFFECT_DRY_LEVEL, 400000, -1, 7, $NI_BUS_OFFSET+$bussSelection)
+		end if
+
+		set_engine_par($ENGINE_PAR_INSERT_EFFECT_OUTPUT_GAIN, 2*%spaceAmount[$bussSelection], -1, 7, $NI_BUS_OFFSET+$bussSelection)
+	
+	else
+		{do delays, case numbers may vary with added/removed spaces}
+		set_engine_par($ENGINE_PAR_EFFECT_BYPASS, 0, -1, 6, $NI_BUS_OFFSET+$bussSelection)
+		select (%spaceType[$bussSelection])
+			case $dlyBorder
+				{slow dly}
+				set_engine_par($ENGINE_PAR_EFFECT_BYPASS, 1, -1, 7, $NI_BUS_OFFSET+$bussSelection)
+				set_engine_par($ENGINE_PAR_DL_TIME_UNIT, $NI_SYNC_UNIT_QUARTER_TRIPLET, -1, 6, $NI_BUS_OFFSET+$bussSelection)
+			case $dlyBorder+1
+				{fast dly}
+				set_engine_par($ENGINE_PAR_EFFECT_BYPASS, 1, -1, 7, $NI_BUS_OFFSET+$bussSelection)
+				set_engine_par($ENGINE_PAR_DL_TIME_UNIT, $NI_SYNC_UNIT_16TH, -1, 6, $NI_BUS_OFFSET+$bussSelection)
+			case $dlyBorder+2
+				{roomy}
+				set_engine_par($ENGINE_PAR_EFFECT_BYPASS, 0, -1, 7, $NI_BUS_OFFSET+$bussSelection)
+				set_engine_par($ENGINE_PAR_DL_TIME_UNIT, $NI_SYNC_UNIT_QUARTER_TRIPLET, -1, 6, $NI_BUS_OFFSET+$bussSelection)
+				load_ir_sample(!resoNames[0], 7, $NI_BUS_OFFSET+$bussSelection)
+			case $dlyBorder+3
+				set_engine_par($ENGINE_PAR_EFFECT_BYPASS, 0, -1, 7, $NI_BUS_OFFSET+$bussSelection)
+				set_engine_par($ENGINE_PAR_DL_TIME_UNIT, $NI_SYNC_UNIT_16TH, -1, 6, $NI_BUS_OFFSET+$bussSelection)
+				load_ir_sample(!resoNames[0], 7, $NI_BUS_OFFSET+$bussSelection)
+		end select
+
+		set_engine_par($ENGINE_PAR_DL_FEEDBACK, %spaceAmount[$bussSelection]*2+300000/(%spaceType[$bussSelection]), -1, 6, $NI_BUS_OFFSET+$bussSelection)
+
+		if($spaceAmountKnob > 200000)
+			set_engine_par($ENGINE_PAR_SEND_EFFECT_DRY_LEVEL, 2*(400000 - %spaceAmount[$bussSelection]), -1, 6, $NI_BUS_OFFSET+$bussSelection)
+			set_engine_par($ENGINE_PAR_SEND_EFFECT_DRY_LEVEL, 2*(400000 - %spaceAmount[$bussSelection]), -1, 7, $NI_BUS_OFFSET+$bussSelection)
+		else
+			set_engine_par($ENGINE_PAR_SEND_EFFECT_DRY_LEVEL, 400000, -1, 6, $NI_BUS_OFFSET+$bussSelection)
+			set_engine_par($ENGINE_PAR_SEND_EFFECT_DRY_LEVEL, 400000, -1, 6, $NI_BUS_OFFSET+$bussSelection)
+		end if
+
+		set_engine_par($ENGINE_PAR_INSERT_EFFECT_OUTPUT_GAIN, real_to_int(int_to_real(%spaceAmount[$bussSelection])*1.4), -1, 6, $NI_BUS_OFFSET+$bussSelection)
+		set_engine_par($ENGINE_PAR_INSERT_EFFECT_OUTPUT_GAIN, real_to_int(int_to_real(%spaceAmount[$bussSelection])*1.4), -1, 7, $NI_BUS_OFFSET+$bussSelection)
+	end if
+end function
+
+function func_setCompGlue
+	set_engine_par($ENGINE_PAR_SCOMP_THRESHOLD, abs($compGlue-1000000), -1, 1, 1)
+	if($compGlue < 500000)
+		set_engine_par($ENGINE_PAR_SCOMP_RATIO, 200000, -1, 1, 1)
+	else
+		if($compGlue < 800000)
+			set_engine_par($ENGINE_PAR_SCOMP_RATIO, 350000, -1, 1, 1)
+		else
+			set_engine_par($ENGINE_PAR_SCOMP_RATIO, 600000, -1, 1, 1)
+		end if
+	end if
+end function
+
+function func_setTapeGlue
+	set_engine_par($ENGINE_PAR_TP_GAIN, $tapeGlue, -1, 2, 1)
+end function
+
+function func_initEngineSettings
+	{volume redundant, saved in other script}
+	call func_setTone
+	set_engine_par($ENGINE_PAR_PAN, %panAmount[$bussSelection], -1, -1, $NI_BUS_OFFSET+$bussSelection)
+	set_engine_par($ENGINE_PAR_STEREO, %widthAmount[$bussSelection], -1, 0, $NI_BUS_OFFSET+$bussSelection)
+	set_engine_par($ENGINE_PAR_GAIN1, %lowEqAmount[$bussSelection], -1, 1, $NI_BUS_OFFSET+$bussSelection)
+	set_engine_par($ENGINE_PAR_GAIN2, %midEqAmount[$bussSelection], -1, 1, $NI_BUS_OFFSET+$bussSelection)
+	call func_setMidEqType
+	set_engine_par($ENGINE_PAR_GAIN3, %hiEqAmount[$bussSelection], -1, 1, $NI_BUS_OFFSET+$bussSelection)
+	call func_setCompType
+	call func_setCompAmount
+	call func_setSpace
+
+end function
+
+{function sets knob values of chosen sound }
+function func_initKnobs
+	$volumeKnob:=get_engine_par($ENGINE_PAR_VOLUME, -1, -1, $NI_BUS_OFFSET+$unitClicked)
+	$toneKnob:=%toneAmount[$unitClicked]
+	$widthKnob:=%widthAmount[$unitClicked]
+	$panKnob:=%panAmount[$unitClicked]
+	$lowEqKnob:=%lowEqAmount[$unitClicked]
+	$midEqKnob:=%midEqAmount[$unitClicked]
+	$midEqMenu:=%midEqType[$unitClicked]
+	$hiEqKnob:=%hiEqAmount[$unitClicked]
+	$compAmountKnob:=%compAmount[$unitClicked]
+	$compTypeMenu:=%compType[$unitClicked]
+	$spaceAmountKnob:=%spaceAmount[$unitClicked]
+	$spaceTypeMenu:=%spaceType[$unitClicked]
+end function
+
+function func_resetKnobValues
+	{engine has been reset in other script}
+	%toneAmount[$bussSelection] := 500000
+	%widthAmount[$bussSelection] := 500000
+	%panAmount[$bussSelection] := 500000
+	%lowEqAmount[$bussSelection] := 500000
+	%midEqAmount[$bussSelection] := 500000
+	%midEqType[$bussSelection] := 1
+	%hiEqAmount[$bussSelection] := 500000
+	%compAmount[$bussSelection] := 130000
+	%compType[$bussSelection] := 0
+	%spaceAmount[$bussSelection] := 0
+	%spaceType[$bussSelection] := 0
+
+	if ($bussSelection > 0)
+		set_control_par(%linkButtons[$bussSelection], $CONTROL_PAR_VALUE, 0)
+	end if
+
+	call func_initKnobs
+end function
+
+on ui_control ($volumeKnob)
+	set_engine_par($ENGINE_PAR_VOLUME, $volumeKnob, -1, -1, $NI_BUS_OFFSET+$unitClicked)
+	pgs_set_key_val(VOLUME_CHANGE_FX, 0, $unitClicked)
+end on
+
+on ui_control ($toneKnob)
+	%toneAmount[$unitClicked]:=$toneKnob
+	$bussSelection:=$unitClicked
+	call func_setTone
+
+	if($unitClicked = 0)
+		$count:=1
+		while($count < $unitLimit)
+			if(get_control_par(%linkButtons[$count], $CONTROL_PAR_VALUE) = 1 and $unitClicked # $count)
+				%toneAmount[$count]:=$toneKnob
+				$bussSelection:=$count
+				call func_setTone
+			end if
+			inc($count)
+		end while
+		$count:=0
+
+		else
+		if(get_control_par(%linkButtons[$unitClicked], $CONTROL_PAR_VALUE) = 1)
+			%toneAmount[0]:=$toneKnob
+			$bussSelection:=0
+			call func_setTone
+		end if
+	end if
+	
+end on
+
+on ui_control ($widthKnob)
+	set_engine_par($ENGINE_PAR_STEREO, $widthKnob, -1, 0, $NI_BUS_OFFSET+$unitClicked)
+	%widthAmount[$unitClicked]:=$widthKnob
+
+	if($unitClicked = 0)
+		$count:=1
+		while($count < $unitLimit)
+			if(get_control_par(%linkButtons[$count], $CONTROL_PAR_VALUE) = 1 and $unitClicked # $count)
+				%widthAmount[$count]:=$widthKnob
+				set_engine_par($ENGINE_PAR_STEREO, $widthKnob, -1, 0, $NI_BUS_OFFSET+$count)
+			end if
+			inc($count)
+		end while
+		$count:=0
+
+		else
+		if(get_control_par(%linkButtons[$unitClicked], $CONTROL_PAR_VALUE) = 1)
+			%widthAmount[0]:=$widthKnob
+			set_engine_par($ENGINE_PAR_STEREO, $widthKnob, -1, 0, $NI_BUS_OFFSET+0)
+		end if
+	end if
+end on
+
+on ui_control ($panKnob)
+	set_engine_par($ENGINE_PAR_PAN, $panKnob, -1, -1, $NI_BUS_OFFSET+$unitClicked)
+	%panAmount[$unitClicked]:=$panKnob
+
+	if($unitClicked = 0)
+		$count:=1
+		while($count < $unitLimit)
+			if(get_control_par(%linkButtons[$count], $CONTROL_PAR_VALUE) = 1 and $unitClicked # $count)
+				%panAmount[$count]:=$panKnob
+				set_engine_par($ENGINE_PAR_PAN, $panKnob, -1, -1, $NI_BUS_OFFSET+$count)
+			end if
+			inc($count)
+		end while
+		$count:=0
+
+		else
+		if(get_control_par(%linkButtons[$unitClicked], $CONTROL_PAR_VALUE) = 1)
+			%panAmount[0]:=$panKnob
+			set_engine_par($ENGINE_PAR_PAN, $panKnob, -1, -1, $NI_BUS_OFFSET+0)
+		end if
+	end if
+end on
+
+on ui_control ($lowEqKnob)
+	set_engine_par($ENGINE_PAR_GAIN1, $lowEqKnob, -1, 1, $NI_BUS_OFFSET+$unitClicked)
+	%lowEqAmount[$unitClicked]:=$lowEqKnob
+
+	if($unitClicked = 0)
+		$count:=1
+		while($count < $unitLimit)
+			if(get_control_par(%linkButtons[$count], $CONTROL_PAR_VALUE) = 1 and $unitClicked # $count)
+				%lowEqAmount[$count]:=$lowEqKnob
+				set_engine_par($ENGINE_PAR_GAIN1, $lowEqKnob, -1, 1, $NI_BUS_OFFSET+$count)
+			end if
+			inc($count)
+		end while
+		$count:=0
+
+		else
+		if(get_control_par(%linkButtons[$unitClicked], $CONTROL_PAR_VALUE) = 1)
+			%lowEqAmount[0]:=$lowEqKnob
+			set_engine_par($ENGINE_PAR_GAIN1, $lowEqKnob, -1, 1, $NI_BUS_OFFSET+0)
+		end if
+	end if
+end on
+
+on ui_control ($midEqKnob)
+	set_engine_par($ENGINE_PAR_GAIN2, $midEqKnob, -1, 1, $NI_BUS_OFFSET+$unitClicked)
+	%midEqAmount[$unitClicked]:=$midEqKnob
+
+	if($unitClicked = 0)
+		$count:=1
+		while($count < $unitLimit)
+			if(get_control_par(%linkButtons[$count], $CONTROL_PAR_VALUE) = 1 and $unitClicked # $count)
+				%midEqAmount[$count]:=$midEqKnob
+				set_engine_par($ENGINE_PAR_GAIN2, $midEqKnob, -1, 1, $NI_BUS_OFFSET+$count)
+			end if
+			inc($count)
+		end while
+		$count:=0
+
+		else
+		if(get_control_par(%linkButtons[$unitClicked], $CONTROL_PAR_VALUE) = 1)
+			%midEqAmount[0]:=$midEqKnob
+			set_engine_par($ENGINE_PAR_GAIN2, $midEqKnob, -1, 1, $NI_BUS_OFFSET+0)
+		end if
+	end if
+end on
+
+on ui_control ($midEqMenu)
+	%midEqType[$unitClicked]:=$midEqMenu
+	$bussSelection:=$unitClicked
+	call func_setMidEqType
+
+	if($unitClicked = 0)
+		$count:=1
+		while($count < $unitLimit)
+			if(get_control_par(%linkButtons[$count], $CONTROL_PAR_VALUE) = 1 and $unitClicked # $count)
+				%midEqType[$count]:=$midEqMenu
+				$bussSelection:=$count
+				call func_setMidEqType
+			end if
+			inc($count)
+		end while
+		$count:=0
+
+		else
+		if(get_control_par(%linkButtons[$unitClicked], $CONTROL_PAR_VALUE) = 1)
+			%midEqType[0]:=$midEqMenu
+			$bussSelection:=0
+			call func_setMidEqType
+		end if
+	end if
+end on
+
+on ui_control ($hiEqKnob)
+	set_engine_par($ENGINE_PAR_GAIN3, $hiEqKnob, -1, 1, $NI_BUS_OFFSET+$unitClicked)
+	%hiEqAmount[$unitClicked]:=$hiEqKnob
+
+	if($unitClicked = 0)
+		$count:=1
+		while($count < $unitLimit)
+			if(get_control_par(%linkButtons[$count], $CONTROL_PAR_VALUE) = 1 and $unitClicked # $count)
+				%hiEqAmount[$count]:=$hiEqKnob
+				set_engine_par($ENGINE_PAR_GAIN3, $hiEqKnob, -1, 1, $NI_BUS_OFFSET+$count)
+			end if
+			inc($count)
+		end while
+		$count:=0
+		
+		else
+		if(get_control_par(%linkButtons[$unitClicked], $CONTROL_PAR_VALUE) = 1)
+			%hiEqAmount[0]:=$hiEqKnob
+			set_engine_par($ENGINE_PAR_GAIN3, $hiEqKnob, -1, 1, $NI_BUS_OFFSET+0)
+		end if
+	end if
+end on
+
+on ui_control ($compAmountKnob)
+	%compAmount[$unitClicked]:=$compAmountKnob
+	$bussSelection:=$unitClicked
+	call func_setCompAmount
+
+	if($unitClicked = 0)
+		$count:=1
+		while($count < $unitLimit)
+			if(get_control_par(%linkButtons[$count], $CONTROL_PAR_VALUE) = 1 and $unitClicked # $count)
+				%compAmount[$count]:=$compAmountKnob
+				$bussSelection:=$count
+				call func_setCompAmount
+			end if
+			inc($count)
+		end while
+		$count:=0
+		
+		else
+		if(get_control_par(%linkButtons[$unitClicked], $CONTROL_PAR_VALUE) = 1)
+			%compAmount[0]:=$compAmountKnob
+			$bussSelection:=0
+			call func_setCompAmount
+		end if
+	end if
+	
+end on
+
+on ui_control ($compTypeMenu)
+	%compType[$unitClicked]:=$compTypeMenu
+	$bussSelection:=$unitClicked
+	call func_setCompType
+	call func_setCompAmount
+
+	if($unitClicked = 0)
+		$count:=1
+		while($count < $unitLimit)
+			if(get_control_par(%linkButtons[$count], $CONTROL_PAR_VALUE) = 1 and $unitClicked # $count)
+				%compType[$count]:=$compTypeMenu
+				$bussSelection:=$count
+				call func_setCompType
+				call func_setCompAmount
+			end if
+			inc($count)
+		end while
+		$count:=0
+		
+		else
+		if(get_control_par(%linkButtons[$unitClicked], $CONTROL_PAR_VALUE) = 1)
+			%compType[0]:=$compTypeMenu
+			$bussSelection:=0
+			call func_setCompType
+			call func_setCompAmount
+		end if
+	end if
+	
+end on
+
+on ui_control ($spaceAmountKnob)
+	%spaceAmount[$unitClicked]:=$spaceAmountKnob
+	$bussSelection:=$unitClicked
+	call func_setSpace
+	
+	if($unitClicked = 0)
+		$count:=1
+		while($count < $unitLimit)
+			if(get_control_par(%linkButtons[$count], $CONTROL_PAR_VALUE) = 1 and $unitClicked # $count)
+				%spaceAmount[$count]:=$spaceAmountKnob
+				$bussSelection:=$count
+				call func_setSpace
+			end if
+			inc($count)
+		end while
+		$count:=0
+		else
+		if(get_control_par(%linkButtons[$unitClicked], $CONTROL_PAR_VALUE) = 1)
+			%spaceAmount[0]:=$spaceTypeMenu
+			$bussSelection:=0
+			call func_setSpace
+		end if
+	end if
+	
+end on
+
+on ui_control ($spaceTypeMenu)
+	%spaceType[$unitClicked]:=$spaceTypeMenu
+	$bussSelection:=$unitClicked
+	call func_setSpace
+
+	if($unitClicked = 0)
+		$count:=1
+		while($count < $unitLimit)
+			if(get_control_par(%linkButtons[$count], $CONTROL_PAR_VALUE) = 1 and $unitClicked # $count)
+				%spaceType[$count]:=$spaceTypeMenu
+				$bussSelection:=$count
+				call func_setSpace
+			end if
+			inc($count)
+		end while
+		$count:=0
+		else
+		if(get_control_par(%linkButtons[$unitClicked], $CONTROL_PAR_VALUE) = 1)
+			%spaceType[0]:=$spaceTypeMenu
+			$bussSelection:=0
+			call func_setSpace
+		end if
+	end if
+end on
+
+on ui_control ($compGlue)
+	call func_setCompGlue
+end on
+
+on ui_control ($tapeGlue)
+	call func_setTapeGlue
+end on
+
+on ui_control ($fxUnit0)
+	$unitClicked:=0
+	call func_setUnitButtonsState
+	call func_initKnobs
+end on
+
+on ui_control ($fxUnit1)
+	$unitClicked:=1
+	call func_setUnitButtonsState
+	call func_initKnobs
+end on
+
+on ui_control ($fxUnit2)
+	$unitClicked:=2
+	call func_setUnitButtonsState
+	call func_initKnobs
+end on
+
+on ui_control ($fxUnit3)
+	$unitClicked:=3
+	call func_setUnitButtonsState
+	call func_initKnobs
+end on
+
+on ui_control ($fxUnit4)
+	$unitClicked:=4
+	call func_setUnitButtonsState
+	call func_initKnobs
+end on
+
+on ui_control ($fxUnit5)
+	$unitClicked:=5
+	call func_setUnitButtonsState
+	call func_initKnobs
+end on
+
+function func_copyBussSettings
+	{bussSelection should have been set when this function is called}
+	%toneAmount[$bussSelection] := %toneAmount[0]
+	call func_setTone
+
+	%widthAmount[$bussSelection] := %widthAmount[0]
+	set_engine_par($ENGINE_PAR_STEREO, %widthAmount[$bussSelection], -1, 0, $NI_BUS_OFFSET+$bussSelection)
+
+	%panAmount[$bussSelection] := %panAmount[0]
+	set_engine_par($ENGINE_PAR_PAN, %panAmount[$bussSelection], -1, -1, $NI_BUS_OFFSET+$bussSelection)
+
+	%lowEqAmount[$bussSelection] := %lowEqAmount[0]
+	set_engine_par($ENGINE_PAR_GAIN1, %lowEqAmount[$bussSelection], -1, 1, $NI_BUS_OFFSET+$bussSelection)
+
+	%midEqAmount[$bussSelection] := %midEqAmount[0]
+	set_engine_par($ENGINE_PAR_GAIN2, %midEqAmount[$bussSelection], -1, 1, $NI_BUS_OFFSET+$bussSelection)
+
+	%midEqType[$bussSelection] := %midEqType[0]
+	call func_setMidEqType
+
+	%hiEqAmount[$bussSelection] := %hiEqAmount[0]
+	set_engine_par($ENGINE_PAR_GAIN3, %hiEqAmount[$bussSelection], -1, 1, $NI_BUS_OFFSET+$bussSelection)
+
+	%compAmount[$bussSelection] := %compAmount[0]
+
+	%compType[$bussSelection] := %compType[0]
+	call func_setCompType
+	call func_setCompAmount
+
+	%spaceAmount[$bussSelection] := %spaceAmount[0]
+	%spaceType[$bussSelection] := %spaceType[0]
+	call func_setSpace
+end function
+
+on ui_control ($linkButton1)
+	if(pgs_get_key_val(UNIT_ORDER, 1) < 0)
+		$linkButton1:=0
+	end if
+	if($linkButton1 = 1)
+		$bussSelection:=1
+		call func_copyBussSettings
+
+		if($fxUnit1 = 1)
+			call func_initKnobs
+		end if
+	end if
+end on
+
+on ui_control ($linkButton2)
+	if(pgs_get_key_val(UNIT_ORDER, 2) < 0)
+		$linkButton2:=0
+	end if
+	if($linkButton2 = 1)
+		$bussSelection:=2
+		call func_copyBussSettings
+
+		if($fxUnit2 = 1)
+			call func_initKnobs
+		end if
+	end if
+end on
+
+on ui_control ($linkButton3)
+	if(pgs_get_key_val(UNIT_ORDER, 3) < 0)
+		$linkButton3:=0
+	end if
+	if($linkButton3 = 1)
+		$bussSelection:=3
+		call func_copyBussSettings
+
+		if($fxUnit3 = 1)
+			call func_initKnobs
+		end if
+	end if
+end on
+
+on ui_control ($linkButton4)
+	if(pgs_get_key_val(UNIT_ORDER, 4) < 0)
+		$linkButton4:=0
+	end if
+	if($linkButton4 = 1)
+		$bussSelection:=4
+		call func_copyBussSettings
+
+		if($fxUnit4 = 1)
+			call func_initKnobs
+		end if
+	end if
+end on
+
+on ui_control ($linkButton5)
+	if(pgs_get_key_val(UNIT_ORDER, 5) < 0)
+		$linkButton5:=0
+	end if
+	if($linkButton5 = 1)
+		$bussSelection:=5
+		call func_copyBussSettings
+
+		if($fxUnit5 = 1)
+			call func_initKnobs
+		end if
+	end if
+end on
+
+{moves units according to order in script 0}
+function func_moveUnits
+	@output:="%fxUnits names: "
+	$count:=1
+	while ($count < $unitLimit)
+		set_control_par(%fxUnits[abs(pgs_get_key_val(UNIT_ORDER, $count))], $CONTROL_PAR_POS_Y, 75+$count*25)
+		set_control_par(%linkButtons[abs(pgs_get_key_val(UNIT_ORDER, $count))], $CONTROL_PAR_POS_Y, 75+$count*25)
+		inc($count)
+	end while
+	$count:=1
+end function
+
+function func_setPgsUnitNames
+	$count:=1 {skip piano, unit is fixed}
+	while($count < $unitLimit)
+		if(pgs_get_key_val(UNIT_NAMES, $count) < 0)
+			set_control_par_str(%fxUnits[$count], $CONTROL_PAR_TEXT, "empty")
+			$bussSelection:=$count
+			call func_resetKnobValues
+		else 
+			set_control_par_str(%fxUnits[$count], $CONTROL_PAR_TEXT, !soundNames[pgs_get_key_val(UNIT_NAMES, $count)])
+		end if
+		inc($count)
+	end while
+	$count:=0
+end function
+
+on pgs_changed
+	if(pgs_key_exists(UNIT_NAMES))
+		call func_setPgsUnitNames
+	end if
+
+	if(pgs_key_exists(UNIT_ORDER))
+		call func_moveUnits
+	end if
+	
+	if(pgs_key_exists(VOLUME_CHANGE_MAIN))
+		$volChangeKeyValue:=pgs_get_key_val(VOLUME_CHANGE_MAIN, 0)
+		$volumeKnob:=get_engine_par($ENGINE_PAR_VOLUME, -1, -1, $NI_BUS_OFFSET+$unitClicked)
+	end if
+end on
+
+on persistence_changed
+	call func_setPgsUnitNames
+	call func_moveUnits
+	call func_initKnobs
+	$count:=0
+	while($count < $unitLimit)
+		$bussSelection:=$count
+		call func_initEngineSettings
+		inc($count)
+	end while
+	$count:=0
+
+	call func_setCompGlue
+	call func_setTapeGlue
+end on

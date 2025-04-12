@@ -1,0 +1,2227 @@
+on init
+	make_perfview
+	message("")
+	set_ui_height_px(425)
+	set_ui_color(6bb5c7h)
+
+	{basic variables to be used in algorithms}
+	declare $count := 0
+	declare $count2 := 0
+	declare $valueHolder
+	declare $temp_x
+	declare $temp_y
+
+	{midi note name table}
+	declare !note[12]
+	!note[0] := "C"
+	!note[1] := "C#"
+	!note[2] := "D"
+	!note[3] := "D#"
+	!note[4] := "E"
+	!note[5] := "F"
+	!note[6] := "F#"
+	!note[7] := "G"
+	!note[8] := "G#"
+	!note[9] := "A"
+	!note[10] := "A#"
+	!note[11] := "B"
+
+	declare !noteNames [128]
+	$count:=0
+	while ($count < 128)
+		!noteNames[$count] := !note[$count mod 12] & (($count/12)-2)
+		inc ($count)
+	end while
+	$count:=0
+
+	declare !soundNames[24]
+	!soundNames[0]:="Gentle Wood"
+	!soundNames[1]:="Typewriter"
+	!soundNames[2]:="Piano Mutes"
+	!soundNames[3]:="1st Harmonic"
+	!soundNames[4]:="2nd Harmonic"
+	!soundNames[5]:="Felt Guitar"
+	!soundNames[6]:="Felt Woodchips"
+	!soundNames[7]:="Felt Book"
+	!soundNames[8]:="Metal Klatter"
+	!soundNames[9]:="Synth Trickle"
+	!soundNames[10]:="Arctic Wave"
+	!soundNames[11]:="Arctic Wind"
+	!soundNames[12]:="Crumbly Machine"
+	!soundNames[13]:="Dystopian Cog"
+	!soundNames[14]:="Dystopian Cog 2"
+	!soundNames[15]:="Storm Brewing"
+	!soundNames[16]:="Stretched Piano"
+	!soundNames[17]:="Subtle Burn"
+	!soundNames[18]:="On Acid"
+	!soundNames[19]:="Typewriter Pad"
+	!soundNames[20]:="Gentle Wind"
+	!soundNames[21]:="Gnarly Synth"
+	!soundNames[22]:="Pearly Sine"
+	!soundNames[23]:="Sparkly Synth"
+	
+
+{------------------------------------------------------------------------------------------------}
+{										unit init								   		    }
+{------------------------------------------------------------------------------------------------}
+
+	declare const $unitLimit:=6
+
+	declare ui_slider $unitSlider0(0, 1000000)
+	declare ui_slider $unitSlider1(0, 1000000)
+	declare ui_slider $unitSlider2(0, 1000000)
+	declare ui_slider $unitSlider3(0, 1000000)
+	declare ui_slider $unitSlider4(0, 1000000)
+	declare ui_slider $unitSlider5(0, 1000000)
+	make_persistent($unitSlider0)
+	make_persistent($unitSlider1)
+	make_persistent($unitSlider2)
+	make_persistent($unitSlider3)
+	make_persistent($unitSlider4)
+	make_persistent($unitSlider5)
+	set_knob_defval($unitSlider0, 630000)
+	set_knob_defval($unitSlider1, 630000)
+	set_knob_defval($unitSlider2, 630000)
+	set_knob_defval($unitSlider3, 630000)
+	set_knob_defval($unitSlider4, 630000)
+	set_knob_defval($unitSlider5, 630000)
+
+	declare %unitSliderIds[$unitLimit]
+	%unitSliderIds[0] := get_ui_id($unitSlider0)
+	%unitSliderIds[1] := get_ui_id($unitSlider1)
+	%unitSliderIds[2] := get_ui_id($unitSlider2)
+	%unitSliderIds[3] := get_ui_id($unitSlider3)
+	%unitSliderIds[4] := get_ui_id($unitSlider4)
+	%unitSliderIds[5] := get_ui_id($unitSlider5)
+
+	
+	declare ui_button $unitSettingsButton0
+	declare ui_button $unitSettingsButton1
+	declare ui_button $unitSettingsButton2
+	declare ui_button $unitSettingsButton3
+	declare ui_button $unitSettingsButton4
+	declare ui_button $unitSettingsButton5
+
+	declare %unitSettingsIds[$unitLimit]
+	%unitSettingsIds[0]:=get_ui_id($unitSettingsButton0)
+	%unitSettingsIds[1]:=get_ui_id($unitSettingsButton1)
+	%unitSettingsIds[2]:=get_ui_id($unitSettingsButton2)
+	%unitSettingsIds[3]:=get_ui_id($unitSettingsButton3)
+	%unitSettingsIds[4]:=get_ui_id($unitSettingsButton4)
+	%unitSettingsIds[5]:=get_ui_id($unitSettingsButton5)
+
+	
+	{declare ui_button $deleteUnit0Button}
+	declare ui_button $deleteUnit1Button
+	declare ui_button $deleteUnit2Button
+	declare ui_button $deleteUnit3Button
+	declare ui_button $deleteUnit4Button
+	declare ui_button $deleteUnit5Button
+	{set_text($deleteUnit0Button, "")}
+	set_text($deleteUnit1Button, "")
+	set_text($deleteUnit2Button, "")
+	set_text($deleteUnit3Button, "")
+	set_text($deleteUnit4Button, "")
+	set_text($deleteUnit5Button, "")
+
+	declare %deleteButtonIds[$unitLimit]
+	{%deleteButtonIds[0]:=get_ui_id($deleteUnit0Button)}
+	%deleteButtonIds[1]:=get_ui_id($deleteUnit1Button)
+	%deleteButtonIds[2]:=get_ui_id($deleteUnit2Button)
+	%deleteButtonIds[3]:=get_ui_id($deleteUnit3Button)
+	%deleteButtonIds[4]:=get_ui_id($deleteUnit4Button)
+	%deleteButtonIds[5]:=get_ui_id($deleteUnit5Button)
+
+	set_control_par_str(%unitSliderIds[0], $CONTROL_PAR_AUTOMATION_NAME, "Piano Volume")
+
+
+	declare $numOfUnits:=1
+	make_persistent($numOfUnits)
+	{$unitPosition only used for positioning of units, identification (i.e settings) works with $unitClicked}
+	declare $unitClicked
+	declare $unitPosition
+	declare $unitDimension
+	{%units: order of upcoming units, if negative: unit inactive}
+	{%units[0] should be fixed}	
+	declare %units[$unitLimit]
+	make_persistent(%units)
+
+	{setup all blocks}
+	$count:=0
+	while($count < $unitLimit)
+		
+		if($count > 0)
+			set_control_par(%unitSliderIds[$count], $CONTROL_PAR_Z_LAYER, -1)
+			set_control_par(%unitSettingsIds[$count], $CONTROL_PAR_Z_LAYER, -1)
+			set_control_par(%deleteButtonIds[$count], $CONTROL_PAR_Z_LAYER, -1)
+		end if
+		
+		if(%units[$count] = 0 and $count > 0)
+			%units[$count]:=$count*(-1)
+		end if
+		set_control_par(%unitSliderIds[$count], $CONTROL_PAR_MOUSE_BEHAVIOUR, -700)
+		if($count >= $numOfUnits)
+			set_control_par(%unitSliderIds[$count], $CONTROL_PAR_HIDE, $HIDE_WHOLE_CONTROL)
+		end if
+		
+		set_control_par_str(%unitSettingsIds[$count], $CONTROL_PAR_PICTURE, "settings_button_large")
+		set_control_par(%unitSettingsIds[$count], $CONTROL_PAR_TEXTPOS_Y, 500)
+		if($count >= $numOfUnits)
+			set_control_par(%unitSettingsIds[$count], $CONTROL_PAR_HIDE, $HIDE_WHOLE_CONTROL)
+		end if
+		
+		{skip deleteButton on first unit}	
+		if($count > 0)
+			set_control_par_str(%deleteButtonIds[$count], $CONTROL_PAR_PICTURE, "deleteunit_button_large")
+			set_control_par(%deleteButtonIds[$count], $CONTROL_PAR_HIDE, $HIDE_WHOLE_CONTROL)
+		end if
+		inc($count)
+	end while
+	$count := 0
+
+	declare $marginX
+	declare $marginY
+
+	declare ui_button $addUnitBtn
+	set_text($addUnitBtn, "")
+	set_control_par_str(get_ui_id($addUnitBtn), $CONTROL_PAR_PICTURE, "addUnit_button")
+	move_control_px($addUnitBtn, 295, 350)
+	$addUnitBtn:=0
+
+{------------------------------------------------------------------------------------------------}
+{										settings init									       }
+{------------------------------------------------------------------------------------------------}
+	
+	declare const $settingsWidth:=632
+	declare const $settingsPosX:=5
+	declare const $settingsPosY:=195
+	declare $settingsBumpY
+	declare $settingsShown:=0
+
+	declare ui_label $settingsBackground($settingsWidth, 1)
+	set_text($settingsBackground, "")
+	move_control_px($settingsBackground, $settingsPosX, $settingsPosY)
+
+	declare ui_xy ?keyRangePiano[4]
+	move_control_px(?keyRangePiano, $settingsPosX,  $settingsPosY+100)
+
+	
+	declare %lowBound[$unitLimit]
+	declare %highBound[$unitLimit]
+	declare const ~keyRange:= 87.0
+	declare %bleedAmount[$unitLimit]
+	declare %transposeAmount[$unitLimit]
+	declare %attackAmount[$unitLimit]
+	declare %decayAmount[$unitLimit]
+	declare %releaseAmount[$unitLimit]
+	declare %releaseTriggerAmount[$unitLimit]
+	declare %pedalAmount[$unitLimit]
+	declare %intensityAmount[$unitLimit]
+	declare %soundSelection[$unitLimit]
+
+	$count:=0
+	while($count < $unitLimit)
+		%lowBound[$count]:=0
+		%highBound[$count]:=103
+		%bleedAmount[$count]:=0
+		%transposeAmount[$count]:=0
+		%attackAmount[$count]:=0
+		%decayAmount[$count]:=1000000
+		%releaseAmount[$count]:=500000
+		%soundSelection[$count]:=-1
+		inc($count)
+	end while
+	$count:=0
+
+	make_persistent(%lowBound)
+	make_persistent(%highBound)
+	make_persistent(%bleedAmount)
+	make_persistent(%transposeAmount)
+	make_persistent(%attackAmount)
+	make_persistent(%decayAmount)
+	make_persistent(%releaseAmount)
+	make_persistent(%releaseTriggerAmount)
+	make_persistent(%pedalAmount)
+	make_persistent(%intensityAmount)
+	make_persistent(%soundSelection)
+	
+	read_persistent_var(%lowBound)
+	read_persistent_var(%highBound)
+	read_persistent_var(%bleedAmount)
+	read_persistent_var(%transposeAmount)
+	read_persistent_var(%attackAmount)
+	read_persistent_var(%decayAmount)
+	read_persistent_var(%releaseAmount)
+	read_persistent_var(%releaseTriggerAmount)
+	read_persistent_var(%pedalAmount)
+	read_persistent_var(%intensityAmount)
+	read_persistent_var(%soundSelection)
+
+	declare ui_label $minNoteLabel(1, 1)
+	declare ui_label $maxNoteLabel(1, 1)
+	move_control_px($minNoteLabel, $settingsPosX+5, $settingsPosY+75)
+	move_control_px($maxNoteLabel, $settingsPosX+35, $settingsPosY+75)
+
+	declare ui_label $pianoLabel(1, 1)
+	move_control_px($pianoLabel, $settingsPosX+225, $settingsPosY+20)
+	set_text($pianoLabel, "Piano")
+
+	declare ui_label $closeMicLabel(1, 1)
+	move_control_px($closeMicLabel, $settingsPosX+220, $settingsPosY+50)
+	set_text($closeMicLabel, "AB")
+
+	declare ui_label $blumiMicLabel(1, 1)
+	move_control_px($blumiMicLabel, $settingsPosX+320, $settingsPosY+50)
+	set_text($blumiMicLabel, "Blumi")
+
+	declare ui_slider $micBlendKnob(0, 630000)
+	make_persistent($micBlendKnob) {no sense in storing in arrays, not enough sounds to use this feature}
+	move_control_px($micBlendKnob, $settingsPosX+250, $settingsPosY+23)
+
+	declare ui_button $soundMenuBtn
+	move_control_px($soundMenuBtn, $settingsPosX+225, $settingsPosY+20)
+
+	declare ui_slider $bleedKnob(0, 24) 
+	move_control_px($bleedKnob, $settingsPosX+50, $settingsPosY+5)
+	set_knob_defval($bleedKnob, 0)
+	declare ~micBlendValue
+
+	declare ui_slider $transposeKnob(-24, 24)
+	move_control_px($transposeKnob, $settingsPosX+150, $settingsPosY+5)
+	set_knob_defval($transposeKnob, 0)
+
+	declare ui_slider $attackKnob(0, 780000)
+	move_control_px($attackKnob, $settingsPosX+380, $settingsPosY+5)
+	set_knob_defval($attackKnob, 0)
+
+	declare ui_slider $decayKnob(0, 1000000)	
+	move_control_px($decayKnob, $settingsPosX+440, $settingsPosY+5)
+	set_knob_defval($decayKnob, 1000000)
+
+	declare ui_slider $releaseKnob(300000, 1000000)
+	move_control_px($releaseKnob, $settingsPosX+500, $settingsPosY+5)
+	set_knob_defval($releaseKnob, 500000)
+
+	declare ui_button $flipMechADRButton 
+	move_control_px($flipMechADRButton, $settingsPosX+555, $settingsPosY+15)
+	set_text($flipMechADRButton, "Mech")
+
+	declare ui_label $bleedLabel(1, 1)
+	set_text($bleedLabel, "Register Bleed")
+	move_control_px($bleedLabel, $settingsPosX+20, $settingsPosY+50)
+
+	declare ui_label $transposeLabel(1, 1)
+	set_text($transposeLabel, "Transpose")
+	move_control_px($transposeLabel, $settingsPosX+135, $settingsPosY+50)
+
+	declare ui_label $transposeAmountLabel(1, 1)
+	set_text($transposeAmountLabel, 0)
+	move_control_px($transposeAmountLabel, $settingsPosX+150, $settingsPosY+19)
+
+	{attackLabel also functions as rt label}
+	declare ui_label $attackLabel(1, 1)
+	move_control_px($attackLabel, $settingsPosX+357, $settingsPosY+50)
+	
+	{decayLabel also functions as pedal label}
+	declare ui_label $decayLabel(1, 1)
+	move_control_px($decayLabel, $settingsPosX+418, $settingsPosY+50)
+
+	{releaseLabel also functions as intensity label}
+	declare ui_label $releaseLabel(1, 1)
+	move_control_px($releaseLabel, $settingsPosX+477, $settingsPosY+50)
+
+	declare ui_slider $releaseTriggerKnob(-60000, 12000) {milli dB relative to main group}
+	move_control_px($releaseTriggerKnob, $settingsPosX+380, $settingsPosY+5)
+	set_knob_defval($releaseTriggerKnob, 0)
+
+	declare ui_slider $pedalKnob(-60000, 12000) {milli dB relative to main group}
+	move_control_px($pedalKnob, $settingsPosX+440, $settingsPosY+5)
+	set_knob_defval($pedalKnob, 0)
+
+	declare ui_slider $intensityKnob(-30, 30) {directly add to velocity}
+	move_control_px($intensityKnob, $settingsPosX+500, $settingsPosY+5)
+	set_knob_defval($intensityKnob, 0)
+
+	declare ui_button $closeSettingsBtn
+	move_control_px($closeSettingsBtn, $settingsPosX+594, $settingsPosY-2)
+	set_text($closeSettingsBtn, "")
+
+	declare %settingsItemIds[25]
+	%settingsItemIds[0]:=get_ui_id($settingsBackground)
+	%settingsItemIds[1]:=get_ui_id(?keyRangePiano)
+	%settingsItemIds[2]:=get_ui_id($minNoteLabel)
+	%settingsItemIds[3]:=get_ui_id($maxNoteLabel)
+	%settingsItemIds[4]:=get_ui_id($pianoLabel)
+	%settingsItemIds[5]:=get_ui_id($closeMicLabel)
+	%settingsItemIds[6]:=get_ui_id($blumiMicLabel)
+	%settingsItemIds[7]:=get_ui_id($micBlendKnob)
+	%settingsItemIds[8]:=get_ui_id($soundMenuBtn)
+	%settingsItemIds[9]:=get_ui_id($flipMechADRButton)
+	%settingsItemIds[10]:=get_ui_id($bleedKnob)
+	%settingsItemIds[11]:=get_ui_id($transposeKnob)
+	%settingsItemIds[12]:=get_ui_id($attackKnob)
+	%settingsItemIds[13]:=get_ui_id($decayKnob)
+	%settingsItemIds[14]:=get_ui_id($releaseKnob)
+	%settingsItemIds[15]:=get_ui_id($bleedLabel)
+	%settingsItemIds[16]:=get_ui_id($transposeLabel)
+	%settingsItemIds[17]:=get_ui_id($attackLabel)
+	%settingsItemIds[18]:=get_ui_id($decayLabel)
+	%settingsItemIds[19]:=get_ui_id($releaseLabel)
+	%settingsItemIds[20]:=get_ui_id($transposeAmountLabel)
+	%settingsItemIds[21]:=get_ui_id($releaseTriggerKnob)
+	%settingsItemIds[22]:=get_ui_id($pedalKnob)
+	%settingsItemIds[23]:=get_ui_id($intensityKnob)
+	%settingsItemIds[24]:=get_ui_id($closeSettingsBtn)
+
+	set_control_par_str(%settingsItemIds[0], $CONTROL_PAR_PICTURE, "settings_background")
+	
+	set_control_par_str(%settingsItemIds[1], $CONTROL_PAR_PICTURE, "piano")
+	set_control_par(%settingsItemIds[1], $CONTROL_PAR_WIDTH, 624)
+	set_control_par(%settingsItemIds[1], $CONTROL_PAR_HEIGHT, 50)
+	set_control_par_str_arr(%settingsItemIds[1], $CONTROL_PAR_CURSOR_PICTURE, "piano_cursor_min", 0)
+	set_control_par_str_arr(%settingsItemIds[1], $CONTROL_PAR_CURSOR_PICTURE, "piano_cursor_max", 2)
+	set_control_par(%settingsItemIds[1], $CONTROL_PAR_MOUSE_MODE, 0)
+
+	set_control_par(%settingsItemIds[2], $CONTROL_PAR_WIDTH, 35)
+	set_control_par(%settingsItemIds[3], $CONTROL_PAR_WIDTH, 35)
+	
+	set_control_par(%settingsItemIds[2], $CONTROL_PAR_FONT_TYPE, 18)
+	set_control_par(%settingsItemIds[3], $CONTROL_PAR_FONT_TYPE, 18)
+	set_control_par(%settingsItemIds[2], $CONTROL_PAR_TEXT_ALIGNMENT, 1)
+	set_control_par(%settingsItemIds[2], $CONTROL_PAR_TEXTPOS_Y, 2)
+	set_control_par(%settingsItemIds[3], $CONTROL_PAR_TEXT_ALIGNMENT, 1)
+	set_control_par(%settingsItemIds[3], $CONTROL_PAR_TEXTPOS_Y, 2)
+
+	set_control_par(%settingsItemIds[4], $CONTROL_PAR_FONT_TYPE, 1)
+	set_control_par(%settingsItemIds[5], $CONTROL_PAR_FONT_TYPE, 18)
+	set_control_par(%settingsItemIds[6], $CONTROL_PAR_FONT_TYPE, 18)
+	set_control_par(%settingsItemIds[8], $CONTROL_PAR_FONT_TYPE, 1)
+
+	set_control_par_str(%settingsItemIds[4], $CONTROL_PAR_PICTURE, "pianoLabel")
+	set_control_par(%settingsItemIds[4], $CONTROL_PAR_TEXT_ALIGNMENT, 1)
+	set_control_par(%settingsItemIds[4], $CONTROL_PAR_WIDTH, 120)
+	set_control_par(%settingsItemIds[4], $CONTROL_PAR_TEXTPOS_Y, 2)
+
+	set_control_par_str(%settingsItemIds[5], $CONTROL_PAR_PICTURE, "settings_label")
+	set_control_par_str(%settingsItemIds[6], $CONTROL_PAR_PICTURE, "settings_label")
+
+	set_control_par_str(%settingsItemIds[7], $CONTROL_PAR_PICTURE, "micBlend_slider")
+	
+	set_control_par_str(%settingsItemIds[8], $CONTROL_PAR_PICTURE, "settingsMenu_button")
+	set_control_par(%settingsItemIds[8], $CONTROL_PAR_TEXT_ALIGNMENT, 1)
+	set_control_par(%settingsItemIds[8], $CONTROL_PAR_WIDTH, 120)
+	set_control_par(%settingsItemIds[8], $CONTROL_PAR_TEXTPOS_Y, 3)
+	
+	set_control_par(%settingsItemIds[8], $CONTROL_PAR_DISABLE_TEXT_SHIFTING, 1)
+
+	set_control_par_str(%settingsItemIds[9], $CONTROL_PAR_PICTURE, "resetADR_button")
+	set_control_par(%settingsItemIds[9], $CONTROL_PAR_DISABLE_TEXT_SHIFTING, 1)
+	set_control_par(%settingsItemIds[9], $CONTROL_PAR_TEXTPOS_Y, 4)
+	set_control_par(%settingsItemIds[9], $CONTROL_PAR_TEXT_ALIGNMENT, 1)
+	set_control_par(%settingsItemIds[9], $CONTROL_PAR_FONT_TYPE, 18)
+
+	$count:=10
+	while($count < 15)
+		set_control_par_str(%settingsItemIds[$count], $CONTROL_PAR_PICTURE, "settings_slider")
+		set_control_par(%settingsItemIds[$count], $CONTROL_PAR_MOUSE_BEHAVIOUR, -300)
+		inc($count)
+	end while
+	while($count < 20)
+		set_control_par(%settingsItemIds[$count], $CONTROL_PAR_FONT_TYPE, 1)
+		set_control_par_str(%settingsItemIds[$count], $CONTROL_PAR_PICTURE, "settings_label")
+		inc($count)
+	end while
+	$count:=0
+
+	set_control_par(%settingsItemIds[17], $CONTROL_PAR_TEXT_ALIGNMENT, 1)
+	set_control_par(%settingsItemIds[18], $CONTROL_PAR_TEXT_ALIGNMENT, 1)
+	set_control_par(%settingsItemIds[19], $CONTROL_PAR_TEXT_ALIGNMENT, 1)
+
+	set_control_par_str(%settingsItemIds[20], $CONTROL_PAR_PICTURE, "settings_label")
+	set_control_par(%settingsItemIds[20], $CONTROL_PAR_FONT_TYPE, 18)
+	set_control_par(%settingsItemIds[20], $CONTROL_PAR_TEXT_ALIGNMENT, 1)
+	set_control_par(%settingsItemIds[20], $CONTROL_PAR_WIDTH, 40)
+
+	set_control_par_str(%settingsItemIds[21], $CONTROL_PAR_PICTURE, "settings_slider")
+	set_control_par(%settingsItemIds[21], $CONTROL_PAR_MOUSE_BEHAVIOUR, -300)
+	set_control_par_str(%settingsItemIds[22], $CONTROL_PAR_PICTURE, "settings_slider")
+	set_control_par(%settingsItemIds[22], $CONTROL_PAR_MOUSE_BEHAVIOUR, -300)
+	set_control_par_str(%settingsItemIds[23], $CONTROL_PAR_PICTURE, "settings_slider")
+	set_control_par(%settingsItemIds[23], $CONTROL_PAR_MOUSE_BEHAVIOUR, -300)
+	
+	set_control_par_str(%settingsItemIds[24], $CONTROL_PAR_PICTURE, "deleteunit_button_med")
+
+	$count:=0
+	while($count < num_elements(%settingsItemIds))
+		set_control_par(%settingsItemIds[$count], $CONTROL_PAR_HIDE, $HIDE_WHOLE_CONTROL)
+		set_control_par(%settingsItemIds[$count], $CONTROL_PAR_Z_LAYER, 0)
+		set_control_par(%settingsItemIds[$count], $CONTROL_PAR_ALLOW_AUTOMATION, 0)
+		inc($count)
+	end while
+	$count:=0
+
+	{0 = everything with flip button, 1 = pedal + rt, 2 = rt 3 = adr, 4 = none but intensity}
+	declare %unitCategory[$unitLimit] := (0, 0, 0, 0, 0, 0)
+	make_persistent(%unitCategory)
+	read_persistent_var(%unitCategory)
+
+{------------------------------------------------------------------------------------------------}
+{										soundMenu init									    }
+{------------------------------------------------------------------------------------------------}
+	
+	pgs_create_key(UNIT_NAMES, 6)
+	{value doesn't matter, key works as signal for fx to retrieve new value from engine}
+	pgs_create_key(VOLUME_CHANGE_MAIN, 1)
+
+	pgs_create_key(UNIT_ORDER, 6)
+
+	declare ui_label $soundMenuBackground(1, 1)
+	set_text($soundMenuBackground, "")
+	declare $soundMenuBackgroundId
+	$soundMenuBackgroundId:=get_ui_id($soundMenuBackground)
+
+	declare ui_button $closeSoundMenu
+	set_text($closeSoundMenu, "Close")
+	declare $closeSoundMenuId
+	$closeSoundMenuId:=get_ui_id($closeSoundMenu)
+
+	declare $soundClicked
+
+	declare ui_button $sound0
+	declare ui_button $sound1
+	declare ui_button $sound2
+	declare ui_button $sound3
+	declare ui_button $sound4
+	declare ui_button $sound5
+	declare ui_button $sound6
+	declare ui_button $sound7
+	declare ui_button $sound8
+	declare ui_button $sound9
+	declare ui_button $sound10
+	declare ui_button $sound11
+	declare ui_button $sound12
+	declare ui_button $sound13
+	declare ui_button $sound14
+	declare ui_button $sound15
+	declare ui_button $sound16
+	declare ui_button $sound17
+	declare ui_button $sound18
+	declare ui_button $sound19
+	declare ui_button $sound20
+	declare ui_button $sound21
+	declare ui_button $sound22
+	declare ui_button $sound23
+
+	move_control_px($soundMenuBackground, 0, 50)
+	move_control_px($closeSoundMenu, 500, 290)
+	move_control_px($sound0, 5, 75)
+	move_control_px($sound1, 5, 100)
+	move_control_px($sound2, 5, 125)
+	move_control_px($sound3, 5, 150)
+	move_control_px($sound4, 5, 175)
+	move_control_px($sound5, 5, 200)
+	move_control_px($sound6, 5, 225)
+	move_control_px($sound7, 5, 250)
+	move_control_px($sound8, 205, 75)
+	move_control_px($sound9, 205, 100)
+	move_control_px($sound10, 205, 125)
+	move_control_px($sound11, 205, 150)
+	move_control_px($sound12, 205, 175)
+	move_control_px($sound13, 205, 200)
+	move_control_px($sound14, 205, 225)
+	move_control_px($sound15, 205, 250)
+	move_control_px($sound16, 405, 75)
+	move_control_px($sound17, 405, 100)
+	move_control_px($sound18, 405, 125)
+	move_control_px($sound19, 405, 150)
+	move_control_px($sound20, 405, 175)
+	move_control_px($sound21, 405, 200)
+	move_control_px($sound22, 405, 225)
+	move_control_px($sound23, 405, 250)
+
+	declare %soundButtonIds[num_elements(!soundNames)]
+	%soundButtonIds[0]:=get_ui_id($sound0)
+	%soundButtonIds[1]:=get_ui_id($sound1)
+	%soundButtonIds[2]:=get_ui_id($sound2)
+	%soundButtonIds[3]:=get_ui_id($sound3)
+	%soundButtonIds[4]:=get_ui_id($sound4)
+	%soundButtonIds[5]:=get_ui_id($sound5)
+	%soundButtonIds[6]:=get_ui_id($sound6)
+	%soundButtonIds[7]:=get_ui_id($sound7)
+	%soundButtonIds[8]:=get_ui_id($sound8)
+	%soundButtonIds[9]:=get_ui_id($sound9)
+	%soundButtonIds[10]:=get_ui_id($sound10)
+	%soundButtonIds[11]:=get_ui_id($sound11)
+	%soundButtonIds[12]:=get_ui_id($sound12)
+	%soundButtonIds[13]:=get_ui_id($sound13)
+	%soundButtonIds[14]:=get_ui_id($sound14)
+	%soundButtonIds[15]:=get_ui_id($sound15)
+	%soundButtonIds[16]:=get_ui_id($sound16)
+	%soundButtonIds[17]:=get_ui_id($sound17)
+	%soundButtonIds[18]:=get_ui_id($sound18)
+	%soundButtonIds[19]:=get_ui_id($sound19)
+	%soundButtonIds[20]:=get_ui_id($sound20)
+	%soundButtonIds[21]:=get_ui_id($sound21)
+	%soundButtonIds[22]:=get_ui_id($sound22)
+	%soundButtonIds[23]:=get_ui_id($sound23)
+
+	set_control_par_str($soundMenuBackgroundId, $CONTROL_PAR_PICTURE, "soundMenu_background")
+
+	set_control_par_str($closeSoundMenuId, $CONTROL_PAR_PICTURE, "settingsMenu_button")
+	set_control_par($closeSoundMenuId, $CONTROL_PAR_FONT_TYPE, 1)
+	set_control_par($closeSoundMenuId, $CONTROL_PAR_TEXT_ALIGNMENT, 1)
+	set_control_par($closeSoundMenuId, $CONTROL_PAR_DISABLE_TEXT_SHIFTING, 1)
+	set_control_par($closeSoundMenuId, $CONTROL_PAR_TEXTPOS_Y, 3)
+	
+	set_control_par($soundMenuBackgroundId, $CONTROL_PAR_HIDE, $HIDE_WHOLE_CONTROL)
+	set_control_par($soundMenuBackgroundId, $CONTROL_PAR_Z_LAYER, 1)
+	set_control_par($closeSoundMenuId, $CONTROL_PAR_HIDE, $HIDE_WHOLE_CONTROL)
+	set_control_par($closeSoundMenuId, $CONTROL_PAR_Z_LAYER, 1)
+	
+	$count:=0
+	while($count < num_elements(!soundNames))
+		set_control_par(%soundButtonIds[$count], $CONTROL_PAR_HIDE, $HIDE_WHOLE_CONTROL)
+		set_control_par(%soundButtonIds[$count], $CONTROL_PAR_Z_LAYER, 1)
+		set_control_par(%soundButtonIds[$count], $CONTROL_PAR_DISABLE_TEXT_SHIFTING, 1)
+
+		{set button text}
+		set_control_par(%soundButtonIds[$count], $CONTROL_PAR_FONT_TYPE, 1)
+		set_control_par(%soundButtonIds[$count], $CONTROL_PAR_TEXTPOS_Y, 5)
+		set_control_par(%soundButtonIds[$count], $CONTROL_PAR_TEXT_ALIGNMENT, 1)
+		set_control_par_str(%soundButtonIds[$count], $CONTROL_PAR_TEXT, !soundNames[$count])
+
+		inc($count)
+	end while
+	$count:=0
+
+	declare %soundUsed[num_elements(!soundNames)]:=(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)
+	make_persistent(%soundUsed)
+	read_persistent_var(%soundUsed)
+
+	declare %soundGroupNum[num_elements(!soundNames)]:=(4, 10, 16, 22, 24, 26, 32, 33, 34, 37, 41 ,42, 43 ,44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54)
+	{not counting rt groups}
+	declare %soundGroupAmount[num_elements(!soundNames)]:=(3, 3, 3, 1, 1, 3, 1, 1, 3, 4, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1)
+	declare %soundHasRTGroups[num_elements(!soundNames)]:=(1, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)
+	declare %soundHasTwoMics[num_elements(!soundNames)]:=(0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)
+	declare %soundKeySolo[num_elements(!soundNames)]:=(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0)
+	
+
+{------------------------------------------------------------------------------------------------}
+{										piano logic init									    }
+{------------------------------------------------------------------------------------------------}
+
+	declare $noteVelocity {needed to figure out bleed velocity}
+	declare $releaseVelocity
+	
+	declare $randomGroup
+
+	declare %unitEvent[$unitLimit]
+		
+	declare %pedalEvent[$unitLimit]
+	declare %releaseEvent[$unitLimit]
+
+	declare %keyPlaying[127]
+	$count:=0
+	while($count < num_elements(%keyPlaying))
+		%keyPlaying[$count]:=0
+		inc($count)
+	end while
+	$count:=0
+
+	declare @output
+end on
+
+{										init end	    									    }
+{------------------------------------------------------------------------------------------------}
+	
+
+{find position of unit clicked}
+function func_findUnitPosition
+	$count:=0
+	while($count < $unitLimit)
+		if(%units[$count] = $unitClicked)
+			$unitPosition:=$count
+			$count:=$unitLimit
+		end if
+		inc($count)
+	end while
+	$count:=0
+end function
+
+{sort unit order when a unit is deleted}
+function func_sortDeletedUnitOrder
+	$count:=$unitPosition
+	$valueHolder:=abs(%units[$unitPosition])
+	while($count < $numOfUnits)
+		%units[$count] := abs(%units[$count+1])
+		%units[$count+1] := $valueHolder * (-1)
+		inc($count)
+	end while
+	{last item minus bug fix}
+	%units[$numOfUnits]:=abs(%units[$numOfUnits]) * (-1)
+	$count := 0
+end function
+
+{function sets up units in gridform}
+function func_positionUnits
+	if($numOfUnits = 1)
+		move_control_px($unitSlider0, 230 , 75)
+		move_control_px($unitSettingsButton0, 350 , 195)
+	else
+		if($numOfUnits > 3)
+			$marginX:=600
+		else
+			$marginX:=250
+		end if
+		$count:=0
+			while($count < $unitLimit)
+				if($count < 3)
+					$marginY:=75
+					$temp_x:= ($marginX / $numOfUnits) + $unitDimension*$count
+				else
+					$marginY:=195
+					{get x position from unit above}
+					$temp_x:= get_control_par(%unitSliderIds[abs(%units[$count-3])], $CONTROL_PAR_POS_X) + ($unitDimension / 2)
+				end if
+				$temp_y:= $marginY
+			
+				set_control_par(%unitSliderIds[abs(%units[$count])], $CONTROL_PAR_POS_X, $temp_x)
+				set_control_par(%unitSliderIds[abs(%units[$count])], $CONTROL_PAR_POS_Y, $temp_y)
+		
+				set_control_par(%unitSettingsIds[abs(%units[$count])], $CONTROL_PAR_POS_X, real_to_int(0.73*int_to_real($unitDimension)) + $temp_x)
+				set_control_par(%unitSettingsIds[abs(%units[$count])], $CONTROL_PAR_POS_Y, $temp_y+($unitDimension/4)*3)
+
+				{skip delete button for unit1}
+				if($count > 0)
+					set_control_par(%deleteButtonIds[abs(%units[$count])], $CONTROL_PAR_POS_X, real_to_int(0.73*int_to_real($unitDimension)) + $temp_x)
+					set_control_par(%deleteButtonIds[abs(%units[$count])], $CONTROL_PAR_POS_Y, $temp_y)
+				end if
+				inc($count)
+			end while
+		$count:=0
+		end if
+end function
+
+{function sets size of units}
+function func_resizeUnits
+	if($numOfUnits > 3)
+		$unitDimension:=120
+		$count:=0
+		while($count < $unitLimit)
+			set_control_par_str(%unitSliderIds[$count], $CONTROL_PAR_PICTURE, "unit_slider_med")
+			set_control_par_str(%unitSettingsIds[$count], $CONTROL_PAR_PICTURE, "settings_button_med")
+			if($count > 0)
+				set_control_par_str(%deleteButtonIds[$count], $CONTROL_PAR_PICTURE, "deleteUnit_button_med")
+			end if
+			inc($count)
+		end while
+		$count:=0
+	else
+		$unitDimension:=160
+		$count:=0
+		while($count < $unitLimit)
+			set_control_par_str(%unitSliderIds[$count], $CONTROL_PAR_PICTURE, "unit_slider_large")
+			set_control_par_str(%unitSettingsIds[$count], $CONTROL_PAR_PICTURE, "settings_button_large")
+			if($count > 0)
+				set_control_par_str(%deleteButtonIds[$count], $CONTROL_PAR_PICTURE, "deleteUnit_button_large")
+			end if
+			inc($count)
+		end while
+		$count:=0
+	end if
+end function
+
+function func_updatePGSUnitInfo
+	pgs_set_key_val(UNIT_NAMES, $unitClicked, %soundSelection[$unitClicked])
+	$count:=1
+	while ($count < $unitLimit)
+		pgs_set_key_val(UNIT_ORDER, $count, %units[$count])
+		inc($count)
+	end while
+	$count:=0
+end function
+	
+{function oversees actions when unit is deleted and calls functions to sort the next units}
+function func_deleteUnit
+	dec($numOfUnits)
+	%lowBound[$unitClicked]:=0
+	%highBound[$unitClicked]:=87
+	%bleedAmount[$unitClicked]:=0
+	%transposeAmount[$unitClicked]:=0
+	%attackAmount[$unitClicked]:=0
+	%decayAmount[$unitClicked]:=1000000
+	%releaseAmount[$unitClicked]:=500000
+	%releaseTriggerAmount[$unitClicked]:=0
+	%pedalAmount[$unitClicked]:=0
+	%intensityAmount[$unitClicked]:=0
+
+	if(%soundSelection[$unitClicked] >= 0)
+		%soundUsed[%soundSelection[$unitClicked]]:=0
+	end if
+	%soundSelection[$unitClicked]:=-1
+
+	set_engine_par($ENGINE_PAR_VOLUME, 0, -1, -1, $NI_BUS_OFFSET+$unitClicked)
+
+	set_control_par(%unitSettingsIds[$unitClicked], $CONTROL_PAR_HIDE, $HIDE_WHOLE_CONTROL)
+	set_control_par(%unitSliderIds[$unitClicked], $CONTROL_PAR_HIDE, $HIDE_WHOLE_CONTROL)
+	set_control_par(%deleteButtonIds[$unitClicked], $CONTROL_PAR_HIDE, $HIDE_WHOLE_CONTROL)
+
+	{reset settings}
+		
+	set_engine_par($ENGINE_PAR_EFFECT_BYPASS, 1, -1, 3, $NI_BUS_OFFSET+$unitClicked)
+	set_engine_par($ENGINE_PAR_EFFECT_BYPASS, 1, -1, 4, $NI_BUS_OFFSET+$unitClicked)
+	set_engine_par($ENGINE_PAR_EFFECT_BYPASS, 1, -1, 2, $NI_BUS_OFFSET+$unitClicked)
+
+	set_engine_par($ENGINE_PAR_PAN, 500000, -1, -1, $NI_BUS_OFFSET+$unitClicked)
+	set_engine_par($ENGINE_PAR_STEREO, 500000, -1, 0, $NI_BUS_OFFSET+$unitClicked)
+	set_engine_par($ENGINE_PAR_GAIN1, 500000, -1, 1, $NI_BUS_OFFSET+$unitClicked)
+	set_engine_par($ENGINE_PAR_GAIN2, 500000, -1, 1, $NI_BUS_OFFSET+$unitClicked)
+	set_engine_par($ENGINE_PAR_GAIN3, 500000, -1, 1, $NI_BUS_OFFSET+$unitClicked)
+
+	set_engine_par($ENGINE_PAR_SCOMP_THRESHOLD, 870000, -1, 5, $NI_BUS_OFFSET+$unitClicked)
+	set_engine_par($ENGINE_PAR_SCOMP_RATIO, 200000, -1, 5, $NI_BUS_OFFSET+$unitClicked)
+	set_engine_par($ENGINE_PAR_SCOMP_ATTACK, 1000000, -1, 5, $NI_BUS_OFFSET+$unitClicked)
+	set_engine_par($ENGINE_PAR_SCOMP_RELEASE, 1000000, -1, 5, $NI_BUS_OFFSET+$unitClicked)
+	set_engine_par($ENGINE_PAR_SCOMP_MIX, 1000000, -1, 5, $NI_BUS_OFFSET+$unitClicked)
+
+	set_engine_par($ENGINE_PAR_SEND_EFFECT_OUTPUT_GAIN, 0, -1, 7, $NI_BUS_OFFSET+$unitClicked)
+	set_engine_par($ENGINE_PAR_SEND_EFFECT_DRY_LEVEL, 350000, -1, 7, $NI_BUS_OFFSET+$unitClicked)
+	load_ir_sample("Clean Room", 7, $NI_BUS_OFFSET+$unitClicked)
+	
+	call func_findUnitPosition
+	call func_sortDeletedUnitOrder
+	call func_resizeUnits
+	call func_positionUnits
+
+	{send sound name update to mixer}
+	call func_updatePGSUnitInfo
+end function
+
+function func_initSettingsKnobs
+	if(%unitCategory[$unitClicked] = 0)
+		{everything with flip button}
+		set_control_par(%settingsItemIds[9], $CONTROL_PAR_VALUE, 0)
+		set_control_par_str(%settingsItemIds[9], $CONTROL_PAR_TEXT, "ADR")
+
+		set_control_par(%settingsItemIds[12], $CONTROL_PAR_HIDE, $HIDE_WHOLE_CONTROL)
+		set_control_par(%settingsItemIds[13], $CONTROL_PAR_HIDE, $HIDE_WHOLE_CONTROL)
+		set_control_par(%settingsItemIds[14], $CONTROL_PAR_HIDE, $HIDE_WHOLE_CONTROL)
+		
+		set_control_par_str(%settingsItemIds[17], $CONTROL_PAR_TEXT, "RT")
+		set_control_par_str(%settingsItemIds[18], $CONTROL_PAR_TEXT, "Pedal")
+		set_control_par_str(%settingsItemIds[19], $CONTROL_PAR_TEXT, "Intensity")
+	end if
+	if(%unitCategory[$unitClicked] = 1)
+		{pedal + rt}
+		set_control_par(%settingsItemIds[9], $CONTROL_PAR_HIDE, $HIDE_WHOLE_CONTROL)
+			
+		set_control_par(%settingsItemIds[12], $CONTROL_PAR_HIDE, $HIDE_WHOLE_CONTROL)
+		set_control_par(%settingsItemIds[13], $CONTROL_PAR_HIDE, $HIDE_WHOLE_CONTROL)
+		set_control_par(%settingsItemIds[14], $CONTROL_PAR_HIDE, $HIDE_WHOLE_CONTROL)
+		
+		set_control_par_str(%settingsItemIds[17], $CONTROL_PAR_TEXT, "RT")
+		set_control_par_str(%settingsItemIds[18], $CONTROL_PAR_TEXT, "Pedal")
+		set_control_par_str(%settingsItemIds[19], $CONTROL_PAR_TEXT, "Intensity")
+	end if
+	if(%unitCategory[$unitClicked] = 2)
+		{rt}
+		set_control_par(%settingsItemIds[9], $CONTROL_PAR_HIDE, $HIDE_WHOLE_CONTROL)
+			
+		set_control_par(%settingsItemIds[12], $CONTROL_PAR_HIDE, $HIDE_WHOLE_CONTROL)
+		set_control_par(%settingsItemIds[13], $CONTROL_PAR_HIDE, $HIDE_WHOLE_CONTROL)
+		set_control_par(%settingsItemIds[14], $CONTROL_PAR_HIDE, $HIDE_WHOLE_CONTROL)
+
+		set_control_par(%settingsItemIds[18], $CONTROL_PAR_HIDE, $HIDE_WHOLE_CONTROL)
+		set_control_par(%settingsItemIds[22], $CONTROL_PAR_HIDE, $HIDE_WHOLE_CONTROL)
+		
+		set_control_par_str(%settingsItemIds[17], $CONTROL_PAR_TEXT, "RT")
+		set_control_par_str(%settingsItemIds[19], $CONTROL_PAR_TEXT, "Intensity")
+	end if
+	if(%unitCategory[$unitClicked] = 3)
+		{adr}
+		set_control_par(%settingsItemIds[9], $CONTROL_PAR_HIDE, $HIDE_WHOLE_CONTROL)
+
+		set_control_par(%settingsItemIds[21], $CONTROL_PAR_HIDE, $HIDE_WHOLE_CONTROL)
+		set_control_par(%settingsItemIds[22], $CONTROL_PAR_HIDE, $HIDE_WHOLE_CONTROL)
+		set_control_par(%settingsItemIds[23], $CONTROL_PAR_HIDE, $HIDE_WHOLE_CONTROL)
+
+		set_control_par_str(%settingsItemIds[17], $CONTROL_PAR_TEXT, "A")
+		set_control_par_str(%settingsItemIds[18], $CONTROL_PAR_TEXT, "D/H")
+		set_control_par_str(%settingsItemIds[19], $CONTROL_PAR_TEXT, "R")
+	end if
+	if(%unitCategory[$unitClicked] = 4)
+		{hide stuff not needed for rest}
+		set_control_par(%settingsItemIds[9], $CONTROL_PAR_HIDE, $HIDE_WHOLE_CONTROL)
+			
+		set_control_par(%settingsItemIds[12], $CONTROL_PAR_HIDE, $HIDE_WHOLE_CONTROL)
+		set_control_par(%settingsItemIds[13], $CONTROL_PAR_HIDE, $HIDE_WHOLE_CONTROL)
+		set_control_par(%settingsItemIds[14], $CONTROL_PAR_HIDE, $HIDE_WHOLE_CONTROL)
+
+		set_control_par(%settingsItemIds[17], $CONTROL_PAR_HIDE, $HIDE_WHOLE_CONTROL)
+		set_control_par(%settingsItemIds[18], $CONTROL_PAR_HIDE, $HIDE_WHOLE_CONTROL)
+		set_control_par_str(%settingsItemIds[19], $CONTROL_PAR_TEXT, "Intensity")
+
+		set_control_par(%settingsItemIds[21], $CONTROL_PAR_HIDE, $HIDE_WHOLE_CONTROL)
+		set_control_par(%settingsItemIds[22], $CONTROL_PAR_HIDE, $HIDE_WHOLE_CONTROL)
+	end if 
+end function
+
+function func_setSoundButtonsState
+	$count:=0
+	while($count < num_elements(%soundButtonIds))
+		if(%soundSelection[$unitClicked] # $count)
+			set_control_par(%soundButtonIds[$count], $CONTROL_PAR_VALUE, 0)
+		else
+			set_control_par(%soundButtonIds[$count], $CONTROL_PAR_VALUE, 1)
+		end if
+		inc($count)
+	end while
+	$count:=0
+end function
+
+function func_setAttack
+	set_engine_par($ENGINE_PAR_ATTACK, %attackAmount[$unitClicked]+40000, %soundGroupNum[%soundSelection[$unitClicked]], 0, -1)
+	if(%soundHasTwoMics[%soundSelection[$unitClicked]] = 1)
+		set_engine_par($ENGINE_PAR_ATTACK, %attackAmount[$unitClicked]+40000, %soundGroupNum[%soundSelection[$unitClicked]]+1, 0, -1)
+	end if
+end function
+
+function func_setDecay
+	{no need to check for multiple groups, adr sounds only have 1 group}
+	set_engine_par($ENGINE_PAR_DECAY, %decayAmount[$unitClicked], %soundGroupNum[%soundSelection[$unitClicked]], 0, -1)
+	if(%soundHasTwoMics[%soundSelection[$unitClicked]] = 1)
+		set_engine_par($ENGINE_PAR_DECAY, %decayAmount[$unitClicked], %soundGroupNum[%soundSelection[$unitClicked]]+1, 0, -1)
+	end if
+	if(%decayAmount[$unitClicked] > 770000)
+		set_engine_par($ENGINE_PAR_SUSTAIN, %decayAmount[$unitClicked], %soundGroupNum[%soundSelection[$unitClicked]], 0, -1)
+		if(%soundHasTwoMics[%soundSelection[$unitClicked]] = 1)
+			set_engine_par($ENGINE_PAR_SUSTAIN, %decayAmount[$unitClicked], %soundGroupNum[%soundSelection[$unitClicked]]+1, 0, -1)
+		end if
+	else
+		set_engine_par($ENGINE_PAR_SUSTAIN, 0, %soundGroupNum[%soundSelection[$unitClicked]], 0, -1)
+		if(%soundHasTwoMics[%soundSelection[$unitClicked]] = 1)
+			set_engine_par($ENGINE_PAR_SUSTAIN, 0, %soundGroupNum[%soundSelection[$unitClicked]]+1, 0, -1)
+		end if
+	end if
+end function
+
+function func_setRelease
+	set_engine_par($ENGINE_PAR_RELEASE, %releaseAmount[$unitClicked], %soundGroupNum[%soundSelection[$unitClicked]], 0, -1)
+	if(%soundHasTwoMics[%soundSelection[$unitClicked]] = 1)
+		set_engine_par($ENGINE_PAR_SUSTAIN, %releaseAmount[$unitClicked], %soundGroupNum[%soundSelection[$unitClicked]]+1, 0, -1)
+	end if
+end function
+
+function func_setADR
+	call func_setAttack
+	call func_setDecay
+	call func_setRelease
+end function
+
+{unhide all settings and bump them to the right place}
+{also hides addunit button for cleaner look}
+function func_showSettings
+
+	call func_findUnitPosition
+	{position the settings window}
+	if($numOfUnits <= 3)
+		$settingsBumpY:=$unitDimension / 4
+	else
+		if($unitPosition < 3)
+			$settingsBumpY:=0
+		else
+			$settingsBumpY:=(-1) * ($unitDimension/2)
+		end if
+	end if
+	$count:=0
+	{show settings}
+	while($count < num_elements(%settingsItemIds))
+		if($settingsShown = 0)
+			set_control_par(%settingsItemIds[$count], $CONTROL_PAR_POS_Y, get_control_par(%settingsItemIds[$count], $CONTROL_PAR_POS_Y)+$settingsBumpY)
+		end if
+		set_control_par(%settingsItemIds[$count], $CONTROL_PAR_HIDE, $HIDE_PART_NOTHING)
+		inc($count)
+	end while
+	$count:=0
+
+	{skip soundMenu for unit 0}
+	if($unitClicked = 0)
+		set_control_par(%settingsItemIds[8], $CONTROL_PAR_HIDE, $HIDE_WHOLE_CONTROL)
+	end if
+	{skip piano label and mic blend stuff for units other than 0, do mic blend stuff here}
+	if($unitClicked # 0)
+		set_control_par(%settingsItemIds[4], $CONTROL_PAR_HIDE, $HIDE_WHOLE_CONTROL)
+		if(%soundSelection[$unitClicked] # 2 and %soundSelection[$unitClicked] # 3 and %soundSelection[$unitClicked] # 4)
+			set_control_par(%settingsItemIds[5], $CONTROL_PAR_HIDE, $HIDE_WHOLE_CONTROL)
+			set_control_par(%settingsItemIds[6], $CONTROL_PAR_HIDE, $HIDE_WHOLE_CONTROL)
+			set_control_par(%settingsItemIds[7], $CONTROL_PAR_HIDE, $HIDE_WHOLE_CONTROL)
+		end if
+	end if
+	call func_initSettingsKnobs
+	
+	{inititalize settings}
+	?keyRangePiano[0] := int_to_real(%lowBound[$unitClicked]) / ~keyRange
+	?keyRangePiano[2] := int_to_real(%highBound[$unitClicked]) / ~keyRange
+	set_text($minNoteLabel, !noteNames[%lowBound[$unitClicked]+21])
+	set_text($maxNoteLabel, !noteNames[%highBound[$unitClicked]+21])
+
+	{move labels with cursors, keyRangePiano in 1, minLabel in 2, maxLabel in 3}
+	set_control_par(%settingsItemIds[2], $CONTROL_PAR_POS_X, get_control_par(%settingsItemIds[1], $CONTROL_PAR_POS_X) + real_to_int(5.9*?keyRangePiano[0]*100.0))
+	set_control_par(%settingsItemIds[3], $CONTROL_PAR_POS_X, get_control_par(%settingsItemIds[1], $CONTROL_PAR_POS_X) + real_to_int(5.9*?keyRangePiano[2]*100.0))
+	
+	$bleedKnob := %bleedAmount[$unitClicked]
+
+	$transposeKnob := %transposeAmount[$unitClicked]
+	if($transposeKnob > 0)
+		set_text($transposeAmountLabel, "+" & %transposeAmount[$unitClicked])
+	else
+		set_text($transposeAmountLabel, %transposeAmount[$unitClicked])
+	end if
+	
+	$releaseTriggerKnob:=%releaseTriggerAmount[$unitClicked]
+	$pedalKnob:=%pedalAmount[$unitClicked]
+	$intensityKnob:=%intensityAmount[$unitClicked]
+	$attackKnob:=%attackAmount[$unitClicked]
+	$decayKnob:=%decayAmount[$unitClicked]
+	$releaseKnob:=%releaseAmount[$unitClicked]
+	
+
+	if($unitClicked # 0)
+		if (%soundSelection[$unitClicked] >= 0)
+			set_text($soundMenuBtn, !soundNames[%soundSelection[$unitClicked]])
+		else 
+			set_text($soundMenuBtn, "empty")
+		end if
+	end if
+
+	{hide buttons and other units}
+	$count:=0
+	while($count < $unitLimit)
+		if($count # $unitClicked)
+			set_control_par(%unitSliderIds[$count], $CONTROL_PAR_HIDE, $HIDE_WHOLE_CONTROL)
+			set_control_par(%unitSettingsIds[$count], $CONTROL_PAR_HIDE, $HIDE_WHOLE_CONTROL)
+			if($count # 0)
+				set_control_par(%deleteButtonIds[$count], $CONTROL_PAR_HIDE, $HIDE_WHOLE_CONTROL)
+			end if
+		end if
+		inc($count)
+	end while
+	$count:=0
+	set_control_par(get_ui_id($addUnitBtn), $CONTROL_PAR_HIDE, $HIDE_WHOLE_CONTROL)
+	
+	$settingsShown:=1
+end function
+
+{hides all settings}
+{unhides addunit button and units not clicked}
+function func_hideSettings
+	$count:=0
+	while($count < num_elements(%settingsItemIds))
+		set_control_par(%settingsItemIds[$count], $CONTROL_PAR_POS_Y, get_control_par(%settingsItemIds[$count], $CONTROL_PAR_POS_Y)-$settingsBumpY)
+		set_control_par(%settingsItemIds[$count], $CONTROL_PAR_HIDE, $HIDE_WHOLE_CONTROL)
+		inc($count)
+	end while
+	$count:=0
+	$settingsBumpY:=0
+
+	{show buttons and other units if active, also called on deleteUnit, therefore $settingsShown statement}
+	$count:=0
+	while($count < $unitLimit)
+		if(%units[$count] >= 0 and $settingsShown = 1)
+			set_control_par(%unitSliderIds[%units[$count]], $CONTROL_PAR_HIDE, $HIDE_PART_NOTHING)
+			set_control_par(%unitSettingsIds[%units[$count]], $CONTROL_PAR_HIDE, $HIDE_PART_NOTHING)
+			if($count > 0)
+				set_control_par(%deleteButtonIds[%units[$count]], $CONTROL_PAR_HIDE, $HIDE_PART_NOTHING)
+			end if
+		end if
+		inc($count)
+	end while
+	$count:=0
+	
+	set_control_par(get_ui_id($addUnitBtn), $CONTROL_PAR_HIDE, $HIDE_PART_NOTHING)
+
+	$settingsShown:=0
+end function
+
+function func_showSoundMenu
+	$count:=0
+	while($count < num_elements(%soundButtonIds))
+		set_control_par(%soundButtonIds[$count], $CONTROL_PAR_HIDE, $HIDE_PART_NOTHING)
+		if(%soundUsed[$count] = 0 or $count = %soundSelection[$unitClicked])
+			set_control_par_str(%soundButtonIds[$count], $CONTROL_PAR_PICTURE, "soundMenu_button")
+		else
+			set_control_par_str(%soundButtonIds[$count], $CONTROL_PAR_PICTURE, "soundMenu_button_inactive")
+		end if
+		inc($count)
+	end while
+	$count:=0
+
+	set_control_par($soundMenuBackgroundId, $CONTROL_PAR_HIDE, $HIDE_PART_NOTHING)
+	set_control_par($closeSoundMenuId, $CONTROL_PAR_HIDE, $HIDE_PART_NOTHING)
+end function
+
+function func_hideSoundMenu
+	$count:=0
+	while($count < num_elements(%soundButtonIds))
+		set_control_par(%soundButtonIds[$count], $CONTROL_PAR_HIDE, $HIDE_WHOLE_CONTROL)
+		inc($count)
+	end while
+	$count:=0
+
+	set_control_par($soundMenuBackgroundId, $CONTROL_PAR_HIDE, $HIDE_WHOLE_CONTROL)
+	set_control_par($closeSoundMenuId, $CONTROL_PAR_HIDE, $HIDE_WHOLE_CONTROL)
+end function
+
+on ui_control (?keyRangePiano)
+	{keyRangePiano id in %settingsItemIds[1]}
+	if(?keyRangePiano[2] < ?keyRangePiano[0])
+		if(get_control_par(%settingsItemIds[1], $CONTROL_PAR_ACTIVE_INDEX)=0)
+			?keyRangePiano[2]:=?keyRangePiano[0]
+		else 
+			?keyRangePiano[0]:=?keyRangePiano[2]
+		end if
+	end if
+	{func_findUnitPosition already called in earlier code}
+	%lowBound[$unitClicked]:=real_to_int(round(?keyRangePiano[0] * ~keyRange))
+	%highBound[$unitClicked]:=real_to_int(round(?keyRangePiano[2] * ~keyRange))
+	{+21 jump to right key}
+	set_text($minNoteLabel, !noteNames[%lowBound[$unitClicked]+21])
+	set_text($maxNoteLabel, !noteNames[%highBound[$unitClicked]+21])
+
+	{snap to piano}
+	if($NI_MOUSE_EVENT_TYPE = $NI_MOUSE_EVENT_TYPE_LEFT_BUTTON_UP)
+		?keyRangePiano[0]:=int_to_real(%lowBound[$unitClicked]) / ~keyRange
+		?keyRangePiano[2]:=int_to_real(%highBound[$unitClicked]) / ~keyRange
+	end if
+
+	{move labels with cursors, keyRangePiano in 1, minLabel in 2, maxLabel in 3}
+	set_control_par(%settingsItemIds[2], $CONTROL_PAR_POS_X, get_control_par(%settingsItemIds[1], $CONTROL_PAR_POS_X) + real_to_int(5.9*?keyRangePiano[0]*100.0))
+	set_control_par(%settingsItemIds[3], $CONTROL_PAR_POS_X, get_control_par(%settingsItemIds[1], $CONTROL_PAR_POS_X) + real_to_int(5.9*?keyRangePiano[2]*100.0))
+	
+end on
+
+on ui_control ($bleedKnob)
+	%bleedAmount[$unitClicked]:=$bleedKnob
+end on
+
+on ui_control ($transposeKnob)
+	%transposeAmount[$unitClicked]:=$transposeKnob
+	if($transposeKnob > 0)
+		set_text($transposeAmountLabel, "+" & $transposeKnob)
+	else
+		set_text($transposeAmountLabel, $transposeKnob)
+	end if
+end on
+
+on ui_control ($micBlendKnob)
+
+	set_engine_par($ENGINE_PAR_VOLUME, abs($micBlendKnob - 630000), 0, -1, -1)
+	set_engine_par($ENGINE_PAR_VOLUME, abs($micBlendKnob - 630000), 2, -1, -1)
+	set_engine_par($ENGINE_PAR_VOLUME, $micBlendKnob, 1, -1, -1)
+	set_engine_par($ENGINE_PAR_VOLUME, $micBlendKnob, 3, -1, -1)
+	
+	set_engine_par($ENGINE_PAR_VOLUME, abs($micBlendKnob - 630000), 16, -1, -1)
+	set_engine_par($ENGINE_PAR_VOLUME, abs($micBlendKnob - 630000), 17, -1, -1)
+	set_engine_par($ENGINE_PAR_VOLUME, abs($micBlendKnob - 630000), 18, -1, -1)
+	set_engine_par($ENGINE_PAR_VOLUME, $micBlendKnob, 19, -1, -1)
+	set_engine_par($ENGINE_PAR_VOLUME, $micBlendKnob, 20, -1, -1)
+	set_engine_par($ENGINE_PAR_VOLUME, $micBlendKnob, 21, -1, -1)
+
+	set_engine_par($ENGINE_PAR_VOLUME, abs($micBlendKnob - 630000), 22, -1, -1)
+	set_engine_par($ENGINE_PAR_VOLUME, $micBlendKnob, 23, -1, -1)
+
+	set_engine_par($ENGINE_PAR_VOLUME, abs($micBlendKnob - 630000), 24, -1, -1)
+	set_engine_par($ENGINE_PAR_VOLUME, $micBlendKnob, 25, -1, -1)
+end on
+
+{skip adr on rt groups}
+on ui_control ($attackKnob)
+	%attackAmount[$unitClicked]:=$attackKnob
+	if($unitClicked = 0)
+		set_engine_par($ENGINE_PAR_ATTACK, %attackAmount[$unitClicked], 0, 0, -1)
+		set_engine_par($ENGINE_PAR_ATTACK, %attackAmount[$unitClicked], 1, 0, -1)
+	else
+		call func_setAttack
+	end if
+end on
+
+on ui_control ($decayKnob)
+	%decayAmount[$unitClicked]:=$decayKnob
+	if($unitClicked = 0)
+		set_engine_par($ENGINE_PAR_DECAY, %decayAmount[$unitClicked], 0, 0, -1)
+		set_engine_par($ENGINE_PAR_DECAY, %decayAmount[$unitClicked], 1, 0, -1)
+		if(%decayAmount[$unitClicked] > 770000)
+			set_engine_par($ENGINE_PAR_SUSTAIN, %decayAmount[$unitClicked], 0, 0, -1)
+			set_engine_par($ENGINE_PAR_SUSTAIN, %decayAmount[$unitClicked], 1, 0, -1)
+		else
+			set_engine_par($ENGINE_PAR_SUSTAIN, 0, 0, 0, -1)
+			set_engine_par($ENGINE_PAR_SUSTAIN, 0, 1, 0, -1)
+		end if
+	else
+		call func_setDecay
+	end if
+end on
+
+on ui_control ($releaseKnob)
+	%releaseAmount[$unitClicked]:=$releaseKnob
+	if($unitClicked = 0)
+		set_engine_par($ENGINE_PAR_RELEASE, %releaseAmount[$unitClicked], 0, 0, -1)
+		set_engine_par($ENGINE_PAR_RELEASE, %releaseAmount[$unitClicked], 1, 0, -1)
+	else
+		call func_setRelease
+	end if
+end on
+
+on ui_control ($releaseTriggerKnob)
+	%releaseTriggerAmount[$unitClicked] := $releaseTriggerKnob
+end on
+
+on ui_control ($pedalKnob)
+	%pedalAmount[$unitClicked] := $pedalKnob
+end on
+
+on ui_control ($intensityKnob)
+	%intensityAmount[$unitClicked] := $intensityKnob
+end on
+
+on ui_control ($flipMechADRButton)
+	if($flipMechADRButton = 1)
+		set_control_par(%settingsItemIds[21], $CONTROL_PAR_HIDE, $HIDE_WHOLE_CONTROL)
+		set_control_par(%settingsItemIds[22], $CONTROL_PAR_HIDE, $HIDE_WHOLE_CONTROL)
+		set_control_par(%settingsItemIds[23], $CONTROL_PAR_HIDE, $HIDE_WHOLE_CONTROL)
+
+		set_control_par(%settingsItemIds[12], $CONTROL_PAR_HIDE, $HIDE_PART_NOTHING)
+		set_control_par(%settingsItemIds[13], $CONTROL_PAR_HIDE, $HIDE_PART_NOTHING)
+		set_control_par(%settingsItemIds[14], $CONTROL_PAR_HIDE, $HIDE_PART_NOTHING)
+
+		set_control_par_str(%settingsItemIds[9], $CONTROL_PAR_TEXT, "Mech")
+		set_control_par_str(%settingsItemIds[17], $CONTROL_PAR_TEXT, "A")
+		set_control_par_str(%settingsItemIds[18], $CONTROL_PAR_TEXT, "D/S")
+		set_control_par_str(%settingsItemIds[19], $CONTROL_PAR_TEXT, "R")
+	end if
+	if($flipMechADRButton = 0)
+		set_control_par(%settingsItemIds[12], $CONTROL_PAR_HIDE, $HIDE_WHOLE_CONTROL)
+		set_control_par(%settingsItemIds[13], $CONTROL_PAR_HIDE, $HIDE_WHOLE_CONTROL)
+		set_control_par(%settingsItemIds[14], $CONTROL_PAR_HIDE, $HIDE_WHOLE_CONTROL)
+
+		set_control_par(%settingsItemIds[21], $CONTROL_PAR_HIDE, $HIDE_PART_NOTHING)
+		set_control_par(%settingsItemIds[22], $CONTROL_PAR_HIDE, $HIDE_PART_NOTHING)
+		set_control_par(%settingsItemIds[23], $CONTROL_PAR_HIDE, $HIDE_PART_NOTHING)
+
+		set_control_par_str(%settingsItemIds[9], $CONTROL_PAR_TEXT, "ADR")
+		set_control_par_str(%settingsItemIds[17], $CONTROL_PAR_TEXT, "RT")
+		set_control_par_str(%settingsItemIds[18], $CONTROL_PAR_TEXT, "Pedal")
+		set_control_par_str(%settingsItemIds[19], $CONTROL_PAR_TEXT, "Intensity")
+	end if
+end on
+
+on ui_control ($addUnitBtn)
+	if($addUnitBtn=1 and $numOfUnits < $unitLimit)
+		inc($numOfUnits)
+		
+		$unitClicked:=abs(%units[$numOfUnits-1])
+		%units[$numOfUnits-1]:=$unitClicked
+
+		call func_findUnitPosition
+		
+		set_control_par(%unitSliderIds[$unitClicked], $CONTROL_PAR_HIDE, $HIDE_PART_NOTHING)
+		set_control_par(%unitSettingsIds[$unitClicked], $CONTROL_PAR_HIDE, $HIDE_PART_NOTHING)
+		set_control_par(%deleteButtonIds[$unitClicked], $CONTROL_PAR_HIDE, $HIDE_PART_NOTHING)
+
+		set_engine_par($ENGINE_PAR_VOLUME, 630000, -1, -1, $NI_BUS_OFFSET+$unitClicked)
+		set_control_par(%unitSliderIds[$unitClicked], $CONTROL_PAR_VALUE, 630000)
+		
+		call func_resizeUnits
+		call func_positionUnits
+	
+		call func_setSoundButtonsState
+		call func_showSoundMenu
+	else
+		call func_hideSoundMenu
+	end if
+
+	if($addUnitBtn=0 and %soundSelection[$unitClicked] = -1)
+		call func_deleteUnit
+	end if
+	if($numOfUnits >= $unitLimit)
+		$addUnitBtn:=0
+	end if
+end on	
+
+on ui_control ($unitSlider0)
+	set_engine_par($ENGINE_PAR_VOLUME, $unitSlider0, -1, -1, $NI_BUS_OFFSET+0)
+
+	pgs_set_key_val(VOLUME_CHANGE_MAIN, 0, 0)
+end on
+
+on ui_control ($unitSlider1)
+	set_engine_par($ENGINE_PAR_VOLUME, $unitSlider1, -1, -1, $NI_BUS_OFFSET+1)
+	
+	pgs_set_key_val(VOLUME_CHANGE_MAIN, 0, 1)
+end on
+
+on ui_control ($unitSlider2)
+	set_engine_par($ENGINE_PAR_VOLUME, $unitSlider2, -1, -1, $NI_BUS_OFFSET+2)
+
+	pgs_set_key_val(VOLUME_CHANGE_MAIN, 0, 2)
+end on
+
+on ui_control ($unitSlider3)
+	set_engine_par($ENGINE_PAR_VOLUME, $unitSlider3, -1, -1, $NI_BUS_OFFSET+3)
+
+	pgs_set_key_val(VOLUME_CHANGE_MAIN, 0, 3)
+end on
+
+on ui_control ($unitSlider4)
+	set_engine_par($ENGINE_PAR_VOLUME, $unitSlider4, -1, -1, $NI_BUS_OFFSET+4)
+
+	pgs_set_key_val(VOLUME_CHANGE_MAIN, 0, 4)
+end on
+
+on ui_control ($unitSlider5)
+	set_engine_par($ENGINE_PAR_VOLUME, $unitSlider5, -1, -1, $NI_BUS_OFFSET+5)
+
+	pgs_set_key_val(VOLUME_CHANGE_MAIN, 0, 5)
+end on
+
+on ui_control ($unitSettingsButton0)
+	$unitClicked:= 0
+	if($unitSettingsButton0 = 0)
+		call func_hideSettings
+	else
+		call func_showSettings
+	end if
+end on
+
+on ui_control ($unitSettingsButton1)
+	$unitClicked:=1
+	if($unitSettingsButton1 = 0)
+		call func_hideSettings
+	else
+		call func_showSettings
+	end if
+end on
+
+on ui_control ($unitSettingsButton2)
+	$unitClicked:=2
+	if($unitSettingsButton2 = 0)
+		call func_hideSettings
+	else
+		call func_showSettings
+	end if
+end on
+
+on ui_control ($unitSettingsButton3)
+	$unitClicked:=3
+	if($unitSettingsButton3 = 0)
+		call func_hideSettings
+	else
+		call func_showSettings
+	end if
+end on
+
+on ui_control ($unitSettingsButton4)
+	$unitClicked:=4
+	if($unitSettingsButton4 = 0)
+		call func_hideSettings
+	else
+		call func_showSettings
+	end if
+end on
+
+on ui_control ($unitSettingsButton5)
+	$unitClicked:=5
+	if($unitSettingsButton5 = 0)
+		call func_hideSettings
+	else
+		call func_showSettings
+	end if
+end on
+
+on ui_control ($closeSettingsBtn)
+	$closeSettingsBtn:=0
+	$unitSettingsButton0:=0
+	$unitSettingsButton1:=0
+	$unitSettingsButton2:=0
+	$unitSettingsButton3:=0
+	$unitSettingsButton4:=0
+	$unitSettingsButton5:=0
+	call func_hideSettings
+end on
+
+{on ui_control ($deleteUnit0Button)
+	$unitClicked:=0
+	call func_unitDeleted
+	$deleteUnit1Button:=0
+end on}
+
+on ui_control ($deleteUnit1Button)
+	$unitClicked:=1
+
+	{purge deleted sound}
+	purge_group(%soundGroupNum[%soundSelection[$unitClicked]], 0)
+	if(%soundHasTwoMics[%soundSelection[$unitClicked]] = 1 or %soundHasRTGroups[%soundSelection[$unitClicked]] = 1)
+		purge_group(%soundGroupNum[%soundSelection[$unitClicked]]+%soundGroupAmount[%soundSelection[$unitClicked]], 0)
+	end if
+	if(%soundGroupAmount[%soundSelection[$unitClicked]] > 1)
+		$count2:=1
+		while($count2 < %soundGroupAmount[%soundSelection[$unitClicked]])
+			purge_group(%soundGroupNum[%soundSelection[$unitClicked]]+$count2, 0)
+			{following code only works because piano mutes is only sound with two mics and more than one group}
+			if(%soundHasTwoMics[%soundSelection[$unitClicked]] = 1 or %soundHasRTGroups[%soundSelection[$unitClicked]] = 1)
+			{piano mutes has no rt groups, that's why this works}
+				purge_group(%soundGroupNum[%soundSelection[$unitClicked]]+$count2+%soundGroupAmount[%soundSelection[$unitClicked]], 0)
+			end if
+			inc($count2)
+		end while
+		$count2:=0
+	end if
+
+	call func_deleteUnit
+	if($settingsShown = 1)
+		call func_hideSettings
+	end if
+	$deleteUnit1Button:=0
+	$unitSettingsButton1:=0
+	$unitSlider1:=0
+
+end on
+
+on ui_control ($deleteUnit2Button)
+	$unitClicked:=2
+
+	{purge deleted sound}
+	purge_group(%soundGroupNum[%soundSelection[$unitClicked]], 0)
+	if(%soundHasTwoMics[%soundSelection[$unitClicked]] = 1 or %soundHasRTGroups[%soundSelection[$unitClicked]] = 1)
+		purge_group(%soundGroupNum[%soundSelection[$unitClicked]]+%soundGroupAmount[%soundSelection[$unitClicked]], 0)
+	end if
+	if(%soundGroupAmount[%soundSelection[$unitClicked]] > 1)
+		$count2:=1
+		while($count2 < %soundGroupAmount[%soundSelection[$unitClicked]])
+			purge_group(%soundGroupNum[%soundSelection[$unitClicked]]+$count2, 0)
+			{following code only works because piano mutes is only sound with two mics and more than one group}
+			if(%soundHasTwoMics[%soundSelection[$unitClicked]] = 1 or %soundHasRTGroups[%soundSelection[$unitClicked]] = 1)
+			{piano mutes has no rt groups, that's why this works}
+				purge_group(%soundGroupNum[%soundSelection[$unitClicked]]+$count2+%soundGroupAmount[%soundSelection[$unitClicked]], 0)
+			end if
+			inc($count2)
+		end while
+		$count2:=0
+	end if
+
+	call func_deleteUnit
+	if($settingsShown = 1)
+		call func_hideSettings
+	end if
+	$deleteUnit2Button:=0
+	$unitSettingsButton2:=0
+	$unitSlider2:=0
+end on
+
+on ui_control ($deleteUnit3Button)
+	$unitClicked:=3
+
+	{purge deleted sound}
+	purge_group(%soundGroupNum[%soundSelection[$unitClicked]], 0)
+	if(%soundHasTwoMics[%soundSelection[$unitClicked]] = 1 or %soundHasRTGroups[%soundSelection[$unitClicked]] = 1)
+		purge_group(%soundGroupNum[%soundSelection[$unitClicked]]+%soundGroupAmount[%soundSelection[$unitClicked]], 0)
+	end if
+	if(%soundGroupAmount[%soundSelection[$unitClicked]] > 1)
+		$count2:=1
+		while($count2 < %soundGroupAmount[%soundSelection[$unitClicked]])
+			purge_group(%soundGroupNum[%soundSelection[$unitClicked]]+$count2, 0)
+			{following code only works because piano mutes is only sound with two mics and more than one group}
+			if(%soundHasTwoMics[%soundSelection[$unitClicked]] = 1 or %soundHasRTGroups[%soundSelection[$unitClicked]] = 1)
+			{piano mutes has no rt groups, that's why this works}
+				purge_group(%soundGroupNum[%soundSelection[$unitClicked]]+$count2+%soundGroupAmount[%soundSelection[$unitClicked]], 0)
+			end if
+			inc($count2)
+		end while
+		$count2:=0
+	end if
+
+	call func_deleteUnit
+	if($settingsShown = 1)
+		call func_hideSettings
+	end if
+	$deleteUnit3Button:=0
+	$unitSettingsButton3:=0
+	$unitSlider3:=0
+end on
+
+on ui_control ($deleteUnit4Button)
+	$unitClicked:=4
+
+	{purge deleted sound}
+	purge_group(%soundGroupNum[%soundSelection[$unitClicked]], 0)
+	if(%soundHasTwoMics[%soundSelection[$unitClicked]] = 1 or %soundHasRTGroups[%soundSelection[$unitClicked]] = 1)
+		purge_group(%soundGroupNum[%soundSelection[$unitClicked]]+%soundGroupAmount[%soundSelection[$unitClicked]], 0)
+	end if
+	if(%soundGroupAmount[%soundSelection[$unitClicked]] > 1)
+		$count2:=1
+		while($count2 < %soundGroupAmount[%soundSelection[$unitClicked]])
+			purge_group(%soundGroupNum[%soundSelection[$unitClicked]]+$count2, 0)
+			{following code only works because piano mutes is only sound with two mics and more than one group}
+			if(%soundHasTwoMics[%soundSelection[$unitClicked]] = 1 or %soundHasRTGroups[%soundSelection[$unitClicked]] = 1)
+			{piano mutes has no rt groups, that's why this works}
+				purge_group(%soundGroupNum[%soundSelection[$unitClicked]]+$count2+%soundGroupAmount[%soundSelection[$unitClicked]], 0)
+			end if
+			inc($count2)
+		end while
+		$count2:=0
+	end if
+	
+	call func_deleteUnit
+	if($settingsShown = 1)
+		call func_hideSettings
+	end if
+	$deleteUnit4Button:=0
+	$unitSettingsButton4:=0
+	$unitSlider4:=0
+end on
+
+on ui_control ($deleteUnit5Button)
+	$unitClicked:=5
+
+	{purge deleted sound}
+	purge_group(%soundGroupNum[%soundSelection[$unitClicked]], 0)
+	if(%soundHasTwoMics[%soundSelection[$unitClicked]] = 1 or %soundHasRTGroups[%soundSelection[$unitClicked]] = 1)
+		purge_group(%soundGroupNum[%soundSelection[$unitClicked]]+%soundGroupAmount[%soundSelection[$unitClicked]], 0)
+	end if
+	if(%soundGroupAmount[%soundSelection[$unitClicked]] > 1)
+		$count2:=1
+		while($count2 < %soundGroupAmount[%soundSelection[$unitClicked]])
+			purge_group(%soundGroupNum[%soundSelection[$unitClicked]]+$count2, 0)
+			{following code only works because piano mutes is only sound with two mics and more than one group}
+			if(%soundHasTwoMics[%soundSelection[$unitClicked]] = 1 or %soundHasRTGroups[%soundSelection[$unitClicked]] = 1)
+			{piano mutes has no rt groups, that's why this works}
+				purge_group(%soundGroupNum[%soundSelection[$unitClicked]]+$count2+%soundGroupAmount[%soundSelection[$unitClicked]], 0)
+			end if
+			inc($count2)
+		end while
+		$count2:=0
+	end if
+	
+	call func_deleteUnit
+	if($settingsShown = 1)
+		call func_hideSettings
+	end if
+	$deleteUnit5Button:=0
+	$unitSettingsButton5:=0
+	$unitSlider5:=0
+end on
+
+on ui_control ($soundMenuBtn)
+	if($soundMenuBtn = 1)
+		call func_showSoundMenu
+		call func_setSoundButtonsState
+	end if
+	$soundMenuBtn:=0
+end on
+
+on ui_control ($closeSoundMenu)
+	if(%soundSelection[$unitClicked] = -1)
+		call func_deleteUnit
+	else
+		{update settings label}
+		set_text($soundMenuBtn,  !soundNames[%soundSelection[$unitClicked]])
+	end if
+	if($closeSoundMenu=1)
+		call func_hideSoundMenu
+	end if
+	if($addUnitBtn=1)
+		$addUnitBtn:=0
+	end if
+	$closeSoundMenu:=0
+
+	if($settingsShown = 1)
+		call func_showSettings
+	end if
+end on
+
+function func_setSound
+	if (%soundUsed[$soundClicked] = 0)
+		if(%soundSelection[$unitClicked] >= 0)
+			%soundUsed[%soundSelection[$unitClicked]]:=0
+		end if
+		%soundSelection[$unitClicked]:=$soundClicked
+		%soundUsed[$soundClicked]:=1
+		call func_setSoundButtonsState
+
+		if(%unitCategory[$unitClicked] = 3 or %unitCategory[$unitClicked] = 0)
+			call func_setADR
+		end if
+		call func_updatePGSUnitInfo
+		set_control_par_str(%unitSliderIds[$unitClicked], $CONTROL_PAR_AUTOMATION_NAME, !soundNames[$soundClicked] & " Volume")
+	end if
+end function
+
+on ui_control ($sound0)
+	$soundClicked:=0
+	%unitCategory[$unitClicked]:=1
+	call func_setSound
+	
+	set_engine_par($ENGINE_PAR_OUTPUT_CHANNEL, $NI_BUS_OFFSET+$unitClicked, 4, -1, -1)
+	set_engine_par($ENGINE_PAR_OUTPUT_CHANNEL, $NI_BUS_OFFSET+$unitClicked, 5, -1, -1)
+	set_engine_par($ENGINE_PAR_OUTPUT_CHANNEL, $NI_BUS_OFFSET+$unitClicked, 6, -1, -1)
+	set_engine_par($ENGINE_PAR_OUTPUT_CHANNEL, $NI_BUS_OFFSET+$unitClicked, 7, -1, -1)
+	set_engine_par($ENGINE_PAR_OUTPUT_CHANNEL, $NI_BUS_OFFSET+$unitClicked, 8, -1, -1)
+	set_engine_par($ENGINE_PAR_OUTPUT_CHANNEL, $NI_BUS_OFFSET+$unitClicked, 9, -1, -1)
+
+	if(get_purge_state(4) = 0)
+		purge_group(4, 1)
+		purge_group(5, 1)
+		purge_group(6, 1)
+		purge_group(7, 1)
+		purge_group(8, 1)
+		purge_group(9, 1)
+	end if
+end on
+
+on ui_control ($sound1)
+	$soundClicked:=1
+	%unitCategory[$unitClicked]:=1
+	call func_setSound
+	
+	set_engine_par($ENGINE_PAR_OUTPUT_CHANNEL, $NI_BUS_OFFSET+$unitClicked, 10, -1, -1)
+	set_engine_par($ENGINE_PAR_OUTPUT_CHANNEL, $NI_BUS_OFFSET+$unitClicked, 11, -1, -1)
+	set_engine_par($ENGINE_PAR_OUTPUT_CHANNEL, $NI_BUS_OFFSET+$unitClicked, 12, -1, -1)
+	set_engine_par($ENGINE_PAR_OUTPUT_CHANNEL, $NI_BUS_OFFSET+$unitClicked, 13, -1, -1)
+	set_engine_par($ENGINE_PAR_OUTPUT_CHANNEL, $NI_BUS_OFFSET+$unitClicked, 14, -1, -1)
+	set_engine_par($ENGINE_PAR_OUTPUT_CHANNEL, $NI_BUS_OFFSET+$unitClicked, 15, -1, -1)
+
+	if(get_purge_state(10) = 0)
+		purge_group(10, 1)
+		purge_group(11, 1)
+		purge_group(12, 1)
+		purge_group(13, 1)
+		purge_group(14, 1)
+		purge_group(15, 1)
+	end if
+end on
+
+on ui_control ($sound2)
+	$soundClicked:=2
+	%unitCategory[$unitClicked]:=4
+	call func_setSound
+
+	set_engine_par($ENGINE_PAR_OUTPUT_CHANNEL, $NI_BUS_OFFSET+$unitClicked, 16, -1, -1)
+	set_engine_par($ENGINE_PAR_OUTPUT_CHANNEL, $NI_BUS_OFFSET+$unitClicked, 17, -1, -1)
+	set_engine_par($ENGINE_PAR_OUTPUT_CHANNEL, $NI_BUS_OFFSET+$unitClicked, 18, -1, -1)
+	set_engine_par($ENGINE_PAR_OUTPUT_CHANNEL, $NI_BUS_OFFSET+$unitClicked, 19, -1, -1)
+	set_engine_par($ENGINE_PAR_OUTPUT_CHANNEL, $NI_BUS_OFFSET+$unitClicked, 20, -1, -1)
+	set_engine_par($ENGINE_PAR_OUTPUT_CHANNEL, $NI_BUS_OFFSET+$unitClicked, 21, -1, -1)
+
+	if(get_purge_state(16) = 0)
+		purge_group(16, 1)
+		purge_group(17, 1)
+		purge_group(18, 1)
+		purge_group(19, 1)
+		purge_group(20, 1)
+		purge_group(21, 1)
+	end if
+end on
+
+on ui_control ($sound3)
+	$soundClicked:=3
+	%unitCategory[$unitClicked]:=3
+	call func_setSound
+
+	set_engine_par($ENGINE_PAR_OUTPUT_CHANNEL, $NI_BUS_OFFSET+$unitClicked, 22, -1, -1)
+	set_engine_par($ENGINE_PAR_OUTPUT_CHANNEL, $NI_BUS_OFFSET+$unitClicked, 23, -1, -1)
+
+	if(get_purge_state(22) = 0)
+		purge_group(22, 1)
+		purge_group(23, 1)
+	end if
+end on
+
+on ui_control ($sound4)
+	$soundClicked:=4
+	%unitCategory[$unitClicked]:=3
+	call func_setSound
+
+	set_engine_par($ENGINE_PAR_OUTPUT_CHANNEL, $NI_BUS_OFFSET+$unitClicked, 24, -1, -1)
+	set_engine_par($ENGINE_PAR_OUTPUT_CHANNEL, $NI_BUS_OFFSET+$unitClicked, 25, -1, -1)
+
+	if(get_purge_state(24) = 0)
+		purge_group(24, 1)
+		purge_group(25, 1)
+	end if
+end on
+
+on ui_control ($sound5)
+	$soundClicked:=5
+	%unitCategory[$unitClicked]:=2
+	call func_setSound
+
+	set_engine_par($ENGINE_PAR_OUTPUT_CHANNEL, $NI_BUS_OFFSET+$unitClicked, 26, -1, -1)
+	set_engine_par($ENGINE_PAR_OUTPUT_CHANNEL, $NI_BUS_OFFSET+$unitClicked, 27, -1, -1)
+	set_engine_par($ENGINE_PAR_OUTPUT_CHANNEL, $NI_BUS_OFFSET+$unitClicked, 28, -1, -1)
+	set_engine_par($ENGINE_PAR_OUTPUT_CHANNEL, $NI_BUS_OFFSET+$unitClicked, 29, -1, -1)
+	set_engine_par($ENGINE_PAR_OUTPUT_CHANNEL, $NI_BUS_OFFSET+$unitClicked, 30, -1, -1)
+	set_engine_par($ENGINE_PAR_OUTPUT_CHANNEL, $NI_BUS_OFFSET+$unitClicked, 31, -1, -1)
+
+	if(get_purge_state(26) = 0)
+		purge_group(26, 1)
+		purge_group(27, 1)
+		purge_group(28, 1)
+		purge_group(29, 1)
+		purge_group(30, 1)
+		purge_group(31, 1)
+	end if
+end on
+
+on ui_control ($sound6)
+	$soundClicked:=6
+	%unitCategory[$unitClicked]:=4
+	call func_setSound
+
+	set_engine_par($ENGINE_PAR_OUTPUT_CHANNEL, $NI_BUS_OFFSET+$unitClicked, 32, -1, -1)
+	
+	if(get_purge_state(32) = 0)
+		purge_group(32, 1)
+	end if
+end on
+
+on ui_control ($sound7)
+	$soundClicked:=7
+	%unitCategory[$unitClicked]:=4
+	call func_setSound
+
+	set_engine_par($ENGINE_PAR_OUTPUT_CHANNEL, $NI_BUS_OFFSET+$unitClicked, 33, -1, -1)
+
+	if(get_purge_state(33) = 0)
+		purge_group(33, 1)
+	end if
+end on
+
+on ui_control ($sound8)
+	$soundClicked:=8
+	%unitCategory[$unitClicked]:=4
+	call func_setSound
+
+	set_engine_par($ENGINE_PAR_OUTPUT_CHANNEL, $NI_BUS_OFFSET+$unitClicked, 34, -1, -1)
+	set_engine_par($ENGINE_PAR_OUTPUT_CHANNEL, $NI_BUS_OFFSET+$unitClicked, 35, -1, -1)
+	set_engine_par($ENGINE_PAR_OUTPUT_CHANNEL, $NI_BUS_OFFSET+$unitClicked, 36, -1, -1)
+
+	if(get_purge_state(34) = 0)
+		purge_group(34, 1)
+		purge_group(35, 1)
+		purge_group(36, 1)
+	end if
+end on
+
+on ui_control ($sound9)
+	$soundClicked:=9
+	%unitCategory[$unitClicked]:=3
+	call func_setSound
+
+	set_engine_par($ENGINE_PAR_OUTPUT_CHANNEL, $NI_BUS_OFFSET+$unitClicked, 37, -1, -1)
+	set_engine_par($ENGINE_PAR_OUTPUT_CHANNEL, $NI_BUS_OFFSET+$unitClicked, 38, -1, -1)
+	set_engine_par($ENGINE_PAR_OUTPUT_CHANNEL, $NI_BUS_OFFSET+$unitClicked, 39, -1, -1)
+	set_engine_par($ENGINE_PAR_OUTPUT_CHANNEL, $NI_BUS_OFFSET+$unitClicked, 40, -1, -1)
+
+	if(get_purge_state(37) = 0)
+		purge_group(37, 1)
+		purge_group(38, 1)
+		purge_group(39, 1)
+		purge_group(40, 1)
+	end if
+end on
+
+on ui_control ($sound10)
+	$soundClicked:=10
+	%unitCategory[$unitClicked]:=3
+	call func_setSound
+
+	set_engine_par($ENGINE_PAR_OUTPUT_CHANNEL, $NI_BUS_OFFSET+$unitClicked, 41, -1, -1)
+
+	if(get_purge_state(41) = 0)
+		purge_group(41, 1)
+	end if
+end on
+
+on ui_control ($sound11)
+	$soundClicked:=11
+	%unitCategory[$unitClicked]:=3
+	call func_setSound
+
+	set_engine_par($ENGINE_PAR_OUTPUT_CHANNEL, $NI_BUS_OFFSET+$unitClicked, 42, -1, -1)
+
+	if(get_purge_state(42) = 0)
+		purge_group(42, 1)
+	end if
+end on
+
+on ui_control ($sound12)
+	$soundClicked:=12
+	%unitCategory[$unitClicked]:=3
+	call func_setSound
+
+	set_engine_par($ENGINE_PAR_OUTPUT_CHANNEL, $NI_BUS_OFFSET+$unitClicked, 43, -1, -1)
+
+	if(get_purge_state(43) = 0)
+		purge_group(43, 1)
+	end if
+end on
+
+on ui_control ($sound13)
+	$soundClicked:=13
+	%unitCategory[$unitClicked]:=3
+	call func_setSound
+
+	set_engine_par($ENGINE_PAR_OUTPUT_CHANNEL, $NI_BUS_OFFSET+$unitClicked, 44, -1, -1)
+	
+	if(get_purge_state(44) = 0)
+		purge_group(44, 1)
+	end if
+end on
+
+on ui_control ($sound14)
+	$soundClicked:=14
+	%unitCategory[$unitClicked]:=3
+	call func_setSound
+
+	set_engine_par($ENGINE_PAR_OUTPUT_CHANNEL, $NI_BUS_OFFSET+$unitClicked, 45, -1, -1)
+
+	if(get_purge_state(45) = 0)
+		purge_group(45, 1)
+	end if
+end on
+
+on ui_control ($sound15)
+	$soundClicked:=15
+	%unitCategory[$unitClicked]:=3
+	call func_setSound
+
+	set_engine_par($ENGINE_PAR_OUTPUT_CHANNEL, $NI_BUS_OFFSET+$unitClicked, 46, -1, -1)
+
+	if(get_purge_state(46) = 0)
+		purge_group(46, 1)
+	end if
+end on
+
+on ui_control ($sound16)
+	$soundClicked:=16
+	%unitCategory[$unitClicked]:=3
+	call func_setSound
+
+	set_engine_par($ENGINE_PAR_OUTPUT_CHANNEL, $NI_BUS_OFFSET+$unitClicked, 47, -1, -1)
+
+	if(get_purge_state(47) = 0)
+		purge_group(47, 1)
+	end if
+end on
+
+on ui_control ($sound17)
+	$soundClicked:=17
+	%unitCategory[$unitClicked]:=3
+	call func_setSound
+
+	set_engine_par($ENGINE_PAR_OUTPUT_CHANNEL, $NI_BUS_OFFSET+$unitClicked, 48, -1, -1)
+
+	if(get_purge_state(48) = 0)
+		purge_group(48, 1)
+	end if
+end on
+
+on ui_control ($sound18)
+	$soundClicked:=18
+	%unitCategory[$unitClicked]:=3
+	call func_setSound
+
+	set_engine_par($ENGINE_PAR_OUTPUT_CHANNEL, $NI_BUS_OFFSET+$unitClicked, 49, -1, -1)
+
+	if(get_purge_state(49) = 0)
+		purge_group(49, 1)
+	end if
+end on
+
+on ui_control ($sound19)
+	$soundClicked:=19
+	%unitCategory[$unitClicked]:=3
+	call func_setSound
+
+	set_engine_par($ENGINE_PAR_OUTPUT_CHANNEL, $NI_BUS_OFFSET+$unitClicked, 50, -1, -1)
+
+	if(get_purge_state(50) = 0)
+		purge_group(50, 1)
+	end if
+end on
+
+on ui_control ($sound20)
+	$soundClicked:=20
+	%unitCategory[$unitClicked]:=3
+	call func_setSound
+
+	set_engine_par($ENGINE_PAR_OUTPUT_CHANNEL, $NI_BUS_OFFSET+$unitClicked, 51, -1, -1)
+
+	if(get_purge_state(51) = 0)
+		purge_group(51, 1)
+	end if
+end on
+
+on ui_control ($sound21)
+	$soundClicked:=21
+	%unitCategory[$unitClicked]:=3
+	call func_setSound
+
+	set_engine_par($ENGINE_PAR_OUTPUT_CHANNEL, $NI_BUS_OFFSET+$unitClicked, 52, -1, -1)
+
+	if(get_purge_state(52) = 0)
+		purge_group(52, 1)
+	end if
+end on
+
+on ui_control ($sound22)
+	$soundClicked:=22
+	%unitCategory[$unitClicked]:=3
+	call func_setSound
+
+	set_engine_par($ENGINE_PAR_OUTPUT_CHANNEL, $NI_BUS_OFFSET+$unitClicked, 53, -1, -1)
+
+	if(get_purge_state(53) = 0)
+		purge_group(53, 1)
+	end if
+end on
+
+on ui_control ($sound23)
+	$soundClicked:=23
+	%unitCategory[$unitClicked]:=3
+	call func_setSound
+
+	set_engine_par($ENGINE_PAR_OUTPUT_CHANNEL, $NI_BUS_OFFSET+$unitClicked, 54, -1, -1)
+
+	if(get_purge_state(54) = 0)
+		purge_group(54, 1)
+	end if
+end on
+
+{initialize unit status from unitsDisplayedArray and position}
+{called right after on init}
+on persistence_changed
+	$count:=0
+	while($count < $numOfUnits)
+		if(%units[$count] >= 0)
+			
+			set_control_par(%unitSliderIds[%units[$count]], $CONTROL_PAR_HIDE, $HIDE_PART_NOTHING)
+			set_control_par(%unitSettingsIds[%units[$count]], $CONTROL_PAR_HIDE, $HIDE_PART_NOTHING)
+			if($count > 0)
+				set_control_par(%deleteButtonIds[%units[$count]], $CONTROL_PAR_HIDE, $HIDE_PART_NOTHING)
+			end if
+
+			{send groups to correct busses}
+			if(%soundSelection[$count] >= 0)
+				set_engine_par($ENGINE_PAR_OUTPUT_CHANNEL, $NI_BUS_OFFSET+$count, %soundGroupNum[%soundSelection[$count]], -1, -1)
+				if(%soundHasTwoMics[%soundSelection[$count]] = 1 or %soundHasRTGroups[%soundSelection[$count]] = 1)
+					set_engine_par($ENGINE_PAR_OUTPUT_CHANNEL, $NI_BUS_OFFSET+$count, %soundGroupNum[%soundSelection[$count]]+%soundGroupAmount[%soundSelection[$count]], -1, -1)
+				end if
+				if(%soundGroupAmount[%soundSelection[$count]] > 1)
+					$count2:=1
+					while($count2 < %soundGroupAmount[%soundSelection[$count]])
+						set_engine_par($ENGINE_PAR_OUTPUT_CHANNEL, $NI_BUS_OFFSET+$count, %soundGroupNum[%soundSelection[$count]]+$count2, -1, -1)
+						{following code only works because piano mutes is only sound with two mics and more than one group}
+						if(%soundHasTwoMics[%soundSelection[$count]] = 1 or %soundHasRTGroups[%soundSelection[$count]] = 1)
+							{piano mutes has no rt groups, that's why this works}
+							set_engine_par($ENGINE_PAR_OUTPUT_CHANNEL, $NI_BUS_OFFSET+$count, %soundGroupNum[%soundSelection[$count]]+$count2+%soundGroupAmount[%soundSelection[$count]], -1, -1)
+						end if
+						inc($count2)
+					end while
+					$count2:=0
+				end if
+			end if
+		end if
+		inc($count)
+	end while
+	$count:=0
+	call func_resizeUnits
+	call func_positionUnits
+
+	{init engine values}
+	set_engine_par($ENGINE_PAR_VOLUME, $unitSlider0, -1, -1, $NI_BUS_OFFSET+0)
+	set_engine_par($ENGINE_PAR_VOLUME, $unitSlider1, -1, -1, $NI_BUS_OFFSET+1)
+	set_engine_par($ENGINE_PAR_VOLUME, $unitSlider2, -1, -1, $NI_BUS_OFFSET+2)
+	set_engine_par($ENGINE_PAR_VOLUME, $unitSlider3, -1, -1, $NI_BUS_OFFSET+3)
+	set_engine_par($ENGINE_PAR_VOLUME, $unitSlider4, -1, -1, $NI_BUS_OFFSET+4)
+	set_engine_par($ENGINE_PAR_VOLUME, $unitSlider5, -1, -1, $NI_BUS_OFFSET+5)
+
+	set_engine_par($ENGINE_PAR_VOLUME, abs($micBlendKnob - 630000), 0, -1, -1)
+	set_engine_par($ENGINE_PAR_VOLUME, abs($micBlendKnob - 630000), 2, -1, -1)
+	set_engine_par($ENGINE_PAR_VOLUME, $micBlendKnob, 1, -1, -1)
+	set_engine_par($ENGINE_PAR_VOLUME, $micBlendKnob, 3, -1, -1)
+
+	$count:=1
+	while($count < $unitLimit)
+		pgs_set_key_val(UNIT_NAMES, $count, %soundSelection[$count])
+		pgs_set_key_val(UNIT_ORDER, $count, %units[$count])
+		inc($count)
+	end while
+	$count:=0
+
+	{purge all sounds from soundmenu not used}
+	$count:=0
+	while($count < num_elements(!soundNames))
+		if(%soundUsed[$count] = 0)
+			purge_group(%soundGroupNum[$count], 0)
+			if(%soundHasTwoMics[$count] = 1 or %soundHasRTGroups[$count] = 1)
+				purge_group(%soundGroupNum[$count]+%soundGroupAmount[$count], 0)
+			end if
+			if(%soundGroupAmount[$count] > 1)
+				$count2:=1
+				while($count2 < %soundGroupAmount[$count])
+					purge_group(%soundGroupNum[$count]+$count2, 0)
+					{following code only works because piano mutes is only sound with two mics and more than one group}
+					if(%soundHasTwoMics[$count] = 1 or %soundHasRTGroups[$count] = 1)
+						{piano mutes has no rt groups, that's why this works}
+						purge_group(%soundGroupNum[$count]+$count2+%soundGroupAmount[$count], 0)
+					end if
+					inc($count2)
+				end while
+				$count2:=0
+			end if
+		end if
+		inc($count)
+	end while
+	$count:=0
+end on
+
+on pgs_changed
+	if(pgs_key_exists(VOLUME_CHANGE_FX))
+		
+		set_control_par(%unitSliderIds[pgs_get_key_val(VOLUME_CHANGE_FX, 0)], $CONTROL_PAR_VALUE, get_engine_par($ENGINE_PAR_VOLUME, -1, -1, $NI_BUS_OFFSET+pgs_get_key_val(VOLUME_CHANGE_FX, 0)))
+	end if
+end on
+
+on note
+	message("")
+	ignore_event($EVENT_ID)
+	if(in_range($EVENT_NOTE, %lowBound[0]+21-%bleedAmount[0], %highBound[0]+21+%bleedAmount[0]))
+		disallow_group($ALL_GROUPS)
+		allow_group(0)
+		allow_group(1)
+		$noteVelocity:=$EVENT_VELOCITY+%intensityAmount[0]
+		if($noteVelocity > 127)
+			$noteVelocity:=127
+		end if
+		if($noteVelocity < 1)
+			$noteVelocity:=1
+		end if
+		%unitEvent[0]:=play_note($EVENT_NOTE+%transposeAmount[0], $noteVelocity, 0, -1)
+		
+
+		if(%bleedAmount[0] > 0)
+			if($EVENT_NOTE < %lowBound[0]+21)
+				change_vol(%unitEvent[0], real_to_int((-60000.0)*pow(int_to_real(%lowBound[0]+21-$EVENT_NOTE) / int_to_real(%bleedAmount[0]), 2.0)), 1)
+			end if
+			if($EVENT_NOTE > %highBound[0]+21)
+				change_vol(%unitEvent[0], real_to_int((-60000.0)*pow(int_to_real(%highBound[0]+21 - $EVENT_NOTE) / int_to_real(%bleedAmount[0]), 2.0)), 1)
+			end if
+		end if
+	end if
+
+	$count := 1
+	while($count < $unitLimit)
+		disallow_group($ALL_GROUPS)
+		if (%units[$count] >= 0)
+			if (%soundSelection[%units[$count]] >= 0)
+				if (in_range($EVENT_NOTE, %lowBound[%units[$count]]+21-%bleedAmount[%units[$count]], %highBound[%units[$count]]+21+%bleedAmount[%units[$count]]))
+					if(%soundGroupAmount[%soundSelection[%units[$count]]] > 1)
+						$randomGroup:=random(%soundGroupNum[%soundSelection[%units[$count]]], %soundGroupNum[%soundSelection[%units[$count]]]+%soundGroupAmount[%soundSelection[%units[$count]]]-1)
+						allow_group($randomGroup)
+						if(%soundHasTwoMics[%soundSelection[%units[$count]]] = 1)
+							allow_group($randomGroup+3) 
+						end if
+					else
+						allow_group(%soundGroupNum[%soundSelection[%units[$count]]])
+						if(%soundHasTwoMics[%soundSelection[%units[$count]]] = 1)
+							allow_group(%soundGroupNum[%soundSelection[%units[$count]]]+1)
+						end if
+					end if
+			
+					if(%unitCategory[%units[$count]] # 3)
+						$noteVelocity:=$EVENT_VELOCITY+%intensityAmount[%units[$count]]
+						if($noteVelocity > 127)
+							$noteVelocity:=127
+						end if
+						if($noteVelocity < 1)
+							$noteVelocity:=1
+						end if
+					else
+						$noteVelocity:=$EVENT_VELOCITY
+					end if
+			
+					if(%soundKeySolo[%soundSelection[%units[$count]]] = 1)
+						if(%keyPlaying[$EVENT_NOTE] = 0)
+							%unitEvent[%units[$count]]:=play_note($EVENT_NOTE+%transposeAmount[%units[$count]], $noteVelocity, 0, -1)
+						end if
+					else
+						%unitEvent[%units[$count]]:=play_note($EVENT_NOTE+%transposeAmount[%units[$count]], $noteVelocity, 0, -1)
+					end if
+			
+					if(%bleedAmount[%units[$count]] > 0)
+						if($EVENT_NOTE < %lowBound[%units[$count]]+21)
+							change_vol(%unitEvent[%units[$count]], real_to_int((-60000.0)*pow(int_to_real(%lowBound[%units[$count]]+21 - $EVENT_NOTE) / int_to_real(%bleedAmount[%units[$count]]), 2.0)), 1)
+						end if
+						if($EVENT_NOTE > %highBound[$count]+21)
+							change_vol(%unitEvent[%units[$count]], real_to_int((-60000.0)*pow(int_to_real(%highBound[%units[$count]]+21 - $EVENT_NOTE) / int_to_real(%bleedAmount[%units[$count]]), 2.0)), 1)
+						end if
+					end if
+				end if
+			end if
+		end if
+		inc($count)
+	end while
+	%keyPlaying[$EVENT_NOTE]:=1
+end on
+
+on release
+	message("")
+	wait(1)
+	if(%NOTE_DURATION[$EVENT_NOTE] < 8000000)
+		$releaseVelocity := real_to_int(int_to_real($EVENT_VELOCITY) * (1.0 - (int_to_real(%NOTE_DURATION[$EVENT_NOTE]) / 8000000.0)))
+		if($releaseVelocity < 1)
+			$releaseVelocity := 1
+		end if
+	else
+		$releaseVelocity := 1
+	end if
+
+	if(in_range($EVENT_NOTE, %lowBound[0]+21-%bleedAmount[0], %highBound[0]+21+%bleedAmount[0]))
+		disallow_group($ALL_GROUPS)
+		allow_group(2)
+		allow_group(3)
+
+		$releaseVelocity:= $releaseVelocity+%intensityAmount[0]
+			if($releaseVelocity > 127)
+				$releaseVelocity := 127
+			end if
+			if($releaseVelocity < 1)
+				$releaseVelocity := 1
+			end if
+		%releaseEvent[0] := play_note($EVENT_NOTE+random(-2, 2)+%transposeAmount[0], $releaseVelocity, 0, 0)
+		change_vol(%releaseEvent[0], %releaseTriggerAmount[0], 1)
+
+		if(%bleedAmount[0] > 0)
+			if($EVENT_NOTE < %lowBound[0]+21)
+				change_vol(%releaseEvent[0], real_to_int((-60000.0)*pow(int_to_real(%lowBound[0]+21-$EVENT_NOTE) / int_to_real(%bleedAmount[0]), 2.0)), 1)
+			end if
+			if($EVENT_NOTE > %highBound[0]+21)
+				change_vol(%releaseEvent[0], real_to_int((-60000.0)*pow(int_to_real(%highBound[0]+21 - $EVENT_NOTE) / int_to_real(%bleedAmount[0]), 2.0)), 1)
+			end if
+		end if
+	end if
+
+	$count := 1
+	while($count < $unitLimit)
+		disallow_group($ALL_GROUPS)
+		if(%units[$count] >= 0 and %soundSelection[%units[$count]] >= 0 and %soundHasRTGroups[%soundSelection[%units[$count]]] = 1 and in_range($EVENT_NOTE, %lowBound[$count]+21-%bleedAmount[$count], %highBound[$count]+21+%bleedAmount[$count]))
+			if(%soundGroupAmount[%soundSelection[%units[$count]]] > 1)
+				$randomGroup:=3+random(%soundGroupNum[%soundSelection[%units[$count]]], %soundGroupNum[%soundSelection[%units[$count]]]+%soundGroupAmount[%soundSelection[%units[$count]]]-1) {works bc rt groups are always in threes}
+				allow_group($randomGroup)
+				if(%soundHasTwoMics[%soundSelection[%units[$count]]] = 1)
+					allow_group($randomGroup+3) {works because piano mutes is the only sound here}
+				end if
+			else
+				allow_group(%soundGroupNum[%soundSelection[%units[$count]]])
+				if(%soundHasTwoMics[%soundSelection[%units[$count]]] = 1)
+					allow_group(%soundGroupNum[%soundSelection[%units[$count]]]+1)
+				end if
+			end if
+			
+			if(%unitCategory[%units[$count]] # 3)
+				$releaseVelocity:= $releaseVelocity+%intensityAmount[$count]
+				if($releaseVelocity > 127)
+					$releaseVelocity := 127
+				end if
+				if($releaseVelocity < 1)
+					$releaseVelocity := 1
+				end if
+			else
+				{$releaseVelocity:=$releaseVelocity}
+			end if
+			%releaseEvent[%units[$count]]:=play_note($EVENT_NOTE+random(-2, 2) + %transposeAmount[%units[$count]], $releaseVelocity, 0, -1)
+			change_vol(%releaseEvent[%units[$count]], %releaseTriggerAmount[%units[$count]], 1)
+	
+			if(%bleedAmount[$count] > 0)
+				if($EVENT_NOTE < %lowBound[$count]+21)
+					change_vol(%releaseEvent[%units[$count]], real_to_int((-60000.0)*pow(int_to_real(%lowBound[$count]+21-$EVENT_NOTE) / int_to_real(%bleedAmount[$count]), 2.0)), 1)
+				end if
+				if($EVENT_NOTE > %highBound[$count]+21)
+					change_vol(%releaseEvent[%units[$count]], real_to_int((-60000.0)*pow(int_to_real(%highBound[$count]+21 - $EVENT_NOTE) / int_to_real(%bleedAmount[$count]), 2.0)), 1)
+				end if
+			end if
+		end if
+		inc($count)
+	end while
+	if(%CC[64] < 10)
+		%keyPlaying[$EVENT_NOTE]:=0
+	end if
+	$releaseVelocity:=$EVENT_VELOCITY
+end on
+
+on controller
+	if($CC_NUM=64)
+		if(%CC[64] > 0)
+			%pedalEvent[0]:=play_note(7, random(70, 127), 0, -1)
+			%pedalEvent[1]:=play_note(7, random(70, 127), 0, -1)
+			%pedalEvent[2]:=play_note(7, random(70, 127), 0, -1)
+			%pedalEvent[3]:=play_note(7, random(70, 127), 0, -1)
+			%pedalEvent[4]:=play_note(7, random(70, 127), 0, -1)
+			%pedalEvent[5]:=play_note(7, random(70, 127), 0, -1)
+		else
+			{code for synths}
+			$count:=0
+			while($count < num_elements(%keyPlaying))
+				%keyPlaying[$count]:=0
+				inc($count)
+			end while
+			$count:=0
+			fade_out(%pedalEvent[0], 1000000, 1)
+			%pedalEvent[0]:=play_note(8, random(70, 127), 0, -1)
+			%pedalEvent[1]:=play_note(8, random(70, 127), 0, -1)
+			%pedalEvent[2]:=play_note(8, random(70, 127), 0, -1)
+			%pedalEvent[3]:=play_note(8, random(70, 127), 0, -1)
+			%pedalEvent[4]:=play_note(8, random(70, 127), 0, -1)
+			%pedalEvent[5]:=play_note(8, random(70, 127), 0, -1)
+		end if
+		set_event_par_arr(%pedalEvent[0], $EVENT_PAR_ALLOW_GROUP, 0, -1)
+		set_event_par_arr(%pedalEvent[0], $EVENT_PAR_ALLOW_GROUP, 1, 0)
+		set_event_par_arr(%pedalEvent[0], $EVENT_PAR_ALLOW_GROUP, 1, 1)
+
+		set_event_par_arr(%pedalEvent[1], $EVENT_PAR_ALLOW_GROUP, 0, -1)
+		set_event_par_arr(%pedalEvent[2], $EVENT_PAR_ALLOW_GROUP, 0, -1)
+		set_event_par_arr(%pedalEvent[3], $EVENT_PAR_ALLOW_GROUP, 0, -1)
+		set_event_par_arr(%pedalEvent[4], $EVENT_PAR_ALLOW_GROUP, 0, -1)
+		set_event_par_arr(%pedalEvent[5], $EVENT_PAR_ALLOW_GROUP, 0, -1)
+
+		if(%pedalAmount[0] # 0)
+			change_vol(%pedalEvent[0], %pedalAmount[0], 1)
+		end if
+
+		$count:=1
+		while($count < $unitLimit)
+			if(%units[$count] >= 0)
+				set_event_par_arr(%pedalEvent[%units[$count]], $EVENT_PAR_ALLOW_GROUP, 0, -1)
+				if(%soundGroupAmount[%soundSelection[%units[$count]]] > 1)
+					$randomGroup:=random(%soundGroupNum[%soundSelection[%units[$count]]], %soundGroupNum[%soundSelection[%units[$count]]]+%soundGroupAmount[%soundSelection[%units[$count]]]-1)
+					set_event_par_arr(%pedalEvent[%units[$count]], $EVENT_PAR_ALLOW_GROUP, 1, $randomGroup)
+					if(%soundHasTwoMics[%soundSelection[%units[$count]]] = 1)
+						set_event_par_arr(%pedalEvent[%units[$count]], $EVENT_PAR_ALLOW_GROUP, 1, $randomGroup+3)
+					end if
+				else
+					set_event_par_arr(%pedalEvent[%units[$count]], $EVENT_PAR_ALLOW_GROUP, 1, %soundGroupNum[%soundSelection[%units[$count]]])
+					if(%soundHasTwoMics[%soundSelection[%units[$count]]] = 1)
+						set_event_par_arr(%pedalEvent[%units[$count]], $EVENT_PAR_ALLOW_GROUP, 1, %soundGroupNum[%soundSelection[%units[$count]]]+1)
+					end if
+				end if
+				if(%pedalAmount[%units[$count]] # 0)
+					change_vol(%pedalEvent[%units[$count]], %pedalAmount[%units[$count]], 1)
+				end if
+			end if
+			inc($count)
+		end while
+		$count:=0
+		
+	end if
+end on
